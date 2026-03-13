@@ -1,0 +1,11 @@
+{
+  "last_pipeline_run": null,
+  "last_pipeline_status": null,
+  "last_opus_decision": null,
+  "deployment_status": "not-deployed",
+  "deployed_at": null,
+  "deployed_by": null,
+  "deployed_version": null,
+  "environment": null,
+  "entries": []
+}

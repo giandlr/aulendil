@@ -1,0 +1,21 @@
+# Claude Code governance — machine-local files
+.claude/developer.conf
+.claude/tmp/
+.claude/audit.log
+CLAUDE.local.md
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

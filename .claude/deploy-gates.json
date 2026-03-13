@@ -1,0 +1,26 @@
+{
+  "mvp": {
+    "label": "Just me testing",
+    "description": "Quick check that the app works and has no security issues",
+    "requires": ["security-scan", "app-starts", "happy-path-works"],
+    "skip": ["unit-tests", "integration-tests", "ui-tests", "performance", "opus-review"],
+    "coverage": null,
+    "narration": "I'll do a quick security check and make sure the app starts up correctly."
+  },
+  "team": {
+    "label": "Sharing with colleagues",
+    "description": "Tests, basic error handling, and authentication verified",
+    "requires": ["security-scan", "unit-tests", "basic-error-handling", "auth-works"],
+    "skip": ["performance", "opus-review"],
+    "coverage": { "line": 60, "branch": 50 },
+    "narration": "I'll run the tests, check security, and make sure login works correctly."
+  },
+  "production": {
+    "label": "External users / company-wide",
+    "description": "Full test suite, performance checks, and senior code review",
+    "requires": ["security-scan", "unit-tests", "integration-tests", "ui-tests", "performance", "opus-review", "tier1-enterprise"],
+    "skip": [],
+    "coverage": { "line": 80, "branch": 70 },
+    "narration": "I'll run the full test suite, check performance, and have a senior reviewer examine everything."
+  }
+}
