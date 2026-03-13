@@ -9,7 +9,7 @@ This application uses a decoupled frontend/backend architecture with Supabase as
 │   Nuxt 3 App    │────▶│   FastAPI API    │────▶│     Supabase        │
 │   (Vercel)      │     │   (Edge/Server)  │     │  ┌───────────────┐  │
 │                 │     │                  │     │  │  PostgreSQL    │  │
-│  Vue 3 + TS     │     │  Python 3.12     │     │  │  + RLS        │  │
+│  Vue 3 + TS     │     │  Python 3.9+     │     │  │  + RLS        │  │
 │  Pinia stores   │     │  Pydantic models │     │  ├───────────────┤  │
 │  TailwindCSS    │     │  Async handlers  │     │  │  Auth (JWT)   │  │
 │                 │     │                  │     │  ├───────────────┤  │
@@ -81,7 +81,7 @@ This application uses a decoupled frontend/backend architecture with Supabase as
 ```bash
 # 1. Clone and install
 git clone <repo> && cd <project>
-bash scripts/sprout-init.sh
+bash scripts/sprout-bootstrap.sh
 
 # 2. Set up Supabase
 supabase start                    # Local Supabase instance
