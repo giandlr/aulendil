@@ -886,17 +886,38 @@
         <div class="card c-purple mb-16" style="display: flex; align-items: flex-start; gap: 16px;">
           <span class="step-num">1</span>
           <div>
-            <h3>Open your terminal and navigate to the project</h3>
+            <h3>Create a new project folder and initialize git</h3>
             <div style="background: #f8f8f8; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; color: var(--dark-gray); margin-top: 8px;">
-              cd /path/to/your/project
+              mkdir my-app &amp;&amp; cd my-app &amp;&amp; git init
+            </div>
+          </div>
+        </div>
+
+        <div class="card c-purple mb-16" style="display: flex; align-items: flex-start; gap: 16px;">
+          <span class="step-num">2</span>
+          <div>
+            <h3>Copy and unzip the toolkit</h3>
+            <div style="background: #f8f8f8; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; color: var(--dark-gray); margin-top: 8px;">
+              cp /path/to/managers-agent-fleet.zip .<br>
+              unzip managers-agent-fleet.zip
             </div>
           </div>
         </div>
 
         <div class="card c-green mb-16" style="display: flex; align-items: flex-start; gap: 16px;">
-          <span class="step-num" style="background: var(--green);">2</span>
+          <span class="step-num" style="background: var(--green);">3</span>
           <div>
-            <h3>Run the bootstrap script</h3>
+            <h3>Install the toolkit into your project</h3>
+            <div style="background: #f8f8f8; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; color: var(--dark-gray); margin-top: 8px;">
+              bash managers-agent-fleet/install.sh
+            </div>
+          </div>
+        </div>
+
+        <div class="card c-green mb-16" style="display: flex; align-items: flex-start; gap: 16px;">
+          <span class="step-num" style="background: var(--green);">4</span>
+          <div>
+            <h3>Bootstrap your app</h3>
             <div style="background: #f8f8f8; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; color: var(--dark-gray); margin-top: 8px;">
               bash scripts/sprout-bootstrap.sh
             </div>
@@ -905,16 +926,25 @@
         </div>
 
         <div class="card c-blue mb-16" style="display: flex; align-items: flex-start; gap: 16px;">
-          <span class="step-num" style="background: var(--blue);">3</span>
+          <span class="step-num" style="background: var(--blue);">5</span>
           <div>
             <h3>Fill in your app name</h3>
-            <p>Open <strong>CLAUDE.md</strong> in the project root and replace <strong>[APP_NAME]</strong> with your application's name and a one-sentence description. That's the only manual edit you'll ever make.</p>
+            <p>Open <strong>CLAUDE.md</strong> in the project root and replace <strong>[APP_NAME]</strong> with your application's name and a one-sentence description.</p>
+          </div>
+        </div>
+
+        <div class="card c-blue mb-16" style="display: flex; align-items: flex-start; gap: 16px;">
+          <span class="step-num" style="background: var(--blue);">6</span>
+          <div>
+            <h3>Open Claude Code and start building</h3>
+            <div style="background: #f8f8f8; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; color: var(--dark-gray); margin-top: 8px;">
+              claude
+            </div>
           </div>
         </div>
 
         <div class="big-quote">
-          That's it. From this point on, just open Claude Code and start describing what you want to build.
-          You're in build mode by default &mdash; build freely, and say "ship it" when you're ready to share.
+          That's it. You're in build mode by default &mdash; build freely, and say "ship it" when you're ready to share.
         </div>
       </div>
     </div>
