@@ -99,11 +99,18 @@ MIN_COVERAGE_BRANCHES: 70
 
 ## Infrastructure
 
-HOSTING: vercel (frontend SSR + backend serverless via api/index.py adapter)
-FRONTEND_HOSTING: vercel (Nuxt 3 SSR with edge middleware)
-BACKEND_HOSTING: vercel (FastAPI as Python serverless functions at /api/*)
-DATABASE_HOSTING: supabase-cloud (Pro/Enterprise for SOC2, HIPAA, dedicated instances)
-SECRETS: .env.local (local), vercel env vars + supabase vault (production)
+| | Cloud (Vercel) | Company Server (Azure) |
+|---|---|---|
+| **Frontend** | Vercel SSR (Nuxt 3 with edge middleware) | Azure Container Apps (Docker container) |
+| **Backend** | Vercel serverless (FastAPI as Python functions at /api/*) | Azure Container Apps (FastAPI in same container) |
+| **Database** | Supabase Cloud (PostgreSQL + Auth + Storage + Realtime) | Supabase Cloud or Azure Database for PostgreSQL (shared server, per-app schema via `APP_SCHEMA`) |
+| **Secrets** | `.env.local` (local), Vercel env vars + Supabase Vault (production) | `.env.local` (local), Azure Key Vault / Container App secrets (production) |
+| **Auth** | Supabase Auth (email/password, OAuth, JWT) | OAuth2 Proxy → Google SSO → `X-Forwarded-Email` header |
+| **Storage** | Supabase Storage (bucket RLS, signed URLs < 1hr) | Azure Blob Storage (per-app container via `BLOB_CONTAINER`, RBAC-scoped) |
+| **CI/CD** | Claude Code pipeline + Vercel deploy | Claude Code pipeline + Docker build/push/deploy stages |
+
+DEPLOY_TARGET: vercel  # or "azure" — set in .env at scaffold time, defaults to vercel if unset
+SECRETS_LOCAL: .env.local
 CI_CD: claude-code pipeline (this system)
 
 ---
@@ -140,14 +147,14 @@ SERVICE_KEY_ENV: SUPABASE_SERVICE_ROLE_KEY
 
 ## Bootstrap
 
-BOOTSTRAP: bash scripts/sprout-bootstrap.sh
+BOOTSTRAP: bash scripts/bootstrap.sh
 BOOTSTRAP_DESCRIPTION: |
   One command to go from empty project to running app.
   Scaffolds Nuxt 3 frontend + FastAPI backend + Supabase local,
   installs all dependencies and dev tools, starts all services.
   After bootstrap: frontend at localhost:3000, backend at localhost:8000,
   Supabase Studio at localhost:54323.
-  Replaces the previous sprout-init.sh (which only installed tools).
+  Replaces the previous init.sh (which only installed tools).
 
 ---
 

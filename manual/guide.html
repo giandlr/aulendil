@@ -1,8 +1,8 @@
 <!--
   Document: Manager's Guide to Building Apps with AI
-  Version:  1.5
+  Version:  1.6
   Date:     2026-03-14
-  Author:   Sprout
+  Author:   Aulendil
 
   How to use: Open in any browser. Navigate with arrow keys or click dots.
 -->
@@ -650,8 +650,8 @@
 <body>
 
   <div class="header">
-    <div class="logo"><img src="../sprout-logo-01.svg" alt="Sprout"></div>
-    <div class="slide-counter" id="slideCounter">1 / 22</div>
+    <div class="logo"><img src="../logo-01.svg" alt="Aulendil"></div>
+    <div class="slide-counter" id="slideCounter">1 / 26</div>
   </div>
 
   <div class="nav-dots" id="navDots"></div>
@@ -662,7 +662,7 @@
     <div class="slide title-slide active" data-slide="0">
       <h1>The Manager's Guide to Building Enterprise Apps with AI</h1>
       <div class="meta" style="font-size:clamp(13px,1.1vw,15px); margin-top:8px;">
-        Sprout &nbsp;|&nbsp; March 2026
+        Aulendil &nbsp;|&nbsp; March 2026
       </div>
       <div class="hero-stat">Build freely. Deploy safely. Quality is automatic.</div>
     </div>
@@ -670,7 +670,7 @@
     <!-- ==================== SLIDE 2: WHAT IS THE FLEET ==================== -->
     <div class="slide" data-slide="1">
       <div class="slide-scroll">
-        <h2>What Is <span class="highlight-purple">Managers' Agent Fleet</span>?</h2>
+        <h2>What Is <span class="highlight-purple">Aulendil</span>?</h2>
         <p class="subtitle" style="font-size:clamp(14px,1.2vw,17px); margin-bottom:20px;">
           This is a system that lets you build production-quality apps by describing what you want in plain English.
           You never touch code. Quality, security, and testing happen automatically behind the scenes.
@@ -923,10 +923,10 @@
           <div>
             <h3>Copy the toolkit zip into your project and unzip it</h3>
             <div style="background: #f8f8f8; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; color: var(--dark-gray); margin-top: 8px;">
-              cp /path/to/managers-agent-fleet.zip .<br>
-              unzip managers-agent-fleet.zip
+              cp /path/to/aulendil.zip .<br>
+              unzip aulendil.zip
             </div>
-            <p class="sm mt-8">This creates a <strong>managers-agent-fleet/</strong> folder inside your project with all the toolkit files.</p>
+            <p class="sm mt-8">This creates a <strong>aulendil/</strong> folder inside your project with all the toolkit files.</p>
           </div>
         </div>
 
@@ -935,7 +935,7 @@
           <div>
             <h3>Install the toolkit into your project</h3>
             <div style="background: #f8f8f8; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; color: var(--dark-gray); margin-top: 8px;">
-              bash managers-agent-fleet/install.sh
+              bash aulendil/install.sh
             </div>
             <p class="sm mt-8">This copies the toolkit files into the right locations, sets up your .gitignore so toolkit files are never committed, and cleans up the zip and installer folder automatically.</p>
           </div>
@@ -946,7 +946,7 @@
           <div>
             <h3>Bootstrap your app</h3>
             <div style="background: #f8f8f8; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; color: var(--dark-gray); margin-top: 8px;">
-              bash scripts/sprout-bootstrap.sh
+              bash scripts/bootstrap.sh
             </div>
             <p class="sm mt-8">This creates your entire app structure, installs everything, starts the database, backend, and frontend. When it finishes, your app is already running at localhost:3000.</p>
           </div>
@@ -1353,7 +1353,7 @@
           <div class="card c-blue" style="padding: 24px;">
             <span class="card-label">After deployment</span>
             <h3>Recording a Deployment</h3>
-            <p class="mb-16">After the app goes live (your tech team handles the actual deployment), record it:</p>
+            <p class="mb-16">After the app goes live, record it:</p>
             <div style="background: #f8f8f8; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 13px; color: var(--dark-gray); margin-bottom: 12px;">
               Run bash .claude/scripts/mark-deployed.sh production
             </div>
@@ -1403,10 +1403,45 @@
       </div>
     </div>
 
-    <!-- ==================== SLIDE: DEPLOYING TO THE CLOUD ==================== -->
+    <!-- ==================== SLIDE: DEPLOYING — WHERE DO YOU WANT YOUR APP? ==================== -->
     <div class="slide" data-slide="18">
       <div class="slide-scroll">
-        <h2>Deploying to the <span class="highlight-green">Cloud</span></h2>
+        <h2>Where Do You Want <span class="highlight-green">Your App</span>?</h2>
+        <p class="subtitle" style="margin-bottom:16px;">Two deployment targets. Same pipeline. Your choice sticks until you change it.</p>
+
+        <div class="grid-2" style="gap: 16px; margin-bottom: 16px;">
+          <div class="card" style="padding: 20px; background: rgba(22,121,250,0.06); border: 2px solid rgba(22,121,250,0.2);">
+            <h3 style="color: var(--blue); margin-bottom: 10px;">Cloud</h3>
+            <p style="font-size: 13px; margin-bottom: 10px;">For teams that want the quickest path to a public URL.</p>
+            <ul class="bullet-list" style="font-size: 13px;">
+              <li>Hosted on the internet, shareable link</li>
+              <li>Works without an IT team</li>
+              <li>Company login via Supabase Auth</li>
+              <li>~$45/mo (estimated)</li>
+            </ul>
+          </div>
+          <div class="card" style="padding: 20px; background: var(--bg-lavender); border: 2px solid rgba(129,57,238,0.2);">
+            <h3 style="color: var(--purple); margin-bottom: 10px;">Company Server</h3>
+            <p style="font-size: 13px; margin-bottom: 10px;">For companies already on Azure + Google Workspace.</p>
+            <ul class="bullet-list" style="font-size: 13px;">
+              <li>Runs on your company's Azure infrastructure</li>
+              <li>Employees log in with company email automatically</li>
+              <li>Apps stay on-premises or in your org's cloud</li>
+              <li>~$15–30/mo per app (estimated)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="big-quote">
+          Say "ship it" and Claude will ask where you want it. Say "switch to the company server" or "switch to the cloud" anytime to change.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SLIDE: CLOUD (VERCEL) ==================== -->
+    <div class="slide" data-slide="19">
+      <div class="slide-scroll">
+        <h2>Deploying to the <span class="highlight-green">Cloud</span> (Vercel)</h2>
         <p class="subtitle" style="margin-bottom:16px;">From local to live in one conversation.</p>
 
         <div class="grid-3" style="gap: 12px; margin-bottom: 16px;">
@@ -1439,8 +1474,105 @@
       </div>
     </div>
 
+    <!-- ==================== SLIDE: COMPANY SERVER (AZURE) ARCHITECTURE ==================== -->
+    <div class="slide" data-slide="20">
+      <div class="slide-scroll">
+        <h2>Company Server <span class="highlight-purple">Architecture</span></h2>
+        <p class="subtitle" style="margin-bottom:16px;">Your app runs in your company's Azure infrastructure. IT sets it up once.</p>
+
+        <div class="grid-2" style="gap: 12px; margin-bottom: 16px;">
+          <div class="card" style="padding: 16px;">
+            <h3 style="font-size: 14px; color: var(--purple); margin-bottom: 8px;">How it works</h3>
+            <ul class="bullet-list" style="font-size: 13px;">
+              <li>Your app runs inside a Docker container on Azure</li>
+              <li>Employees visit the URL and click "Sign in with Google"</li>
+              <li>A security proxy checks their email is from your company domain</li>
+              <li>The app receives the employee's email — no passwords to manage</li>
+              <li>Roles and permissions still work exactly the same way</li>
+            </ul>
+          </div>
+          <div class="card" style="padding: 16px;">
+            <h3 style="font-size: 14px; color: var(--blue); margin-bottom: 8px;">What IT sets up (once)</h3>
+            <ul class="bullet-list" style="font-size: 13px;">
+              <li>Azure Container Apps environment (shared across apps)</li>
+              <li>Shared PostgreSQL database server</li>
+              <li>Shared Blob Storage account</li>
+              <li>Google OAuth client in Google Cloud Console</li>
+              <li>Each new app gets its own isolated slice automatically</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="big-quote">
+          Claude generates a complete IT setup guide. After one-time setup, every new app deploys with a single command.
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SLIDE: DUAL AUTH MODES ==================== -->
+    <div class="slide" data-slide="21">
+      <div class="slide-scroll">
+        <h2>How <span class="highlight-green">Login</span> Works</h2>
+        <p class="subtitle" style="margin-bottom:16px;">The login experience adapts to your deployment target automatically.</p>
+
+        <div class="grid-2" style="gap: 16px; margin-bottom: 16px;">
+          <div class="card" style="padding: 20px; background: rgba(22,121,250,0.06);">
+            <h3 style="color: var(--blue); font-size: 14px; margin-bottom: 8px;">Cloud login</h3>
+            <ul class="bullet-list" style="font-size: 13px;">
+              <li>Email + password via Supabase Auth</li>
+              <li>Optional Google login button</li>
+              <li>Works for any email address</li>
+              <li>You control who gets an account (invite-only)</li>
+            </ul>
+          </div>
+          <div class="card" style="padding: 20px; background: var(--bg-lavender);">
+            <h3 style="color: var(--purple); font-size: 14px; margin-bottom: 8px;">Company server login</h3>
+            <ul class="bullet-list" style="font-size: 13px;">
+              <li>Employees click "Sign in with Google"</li>
+              <li>Only your company email domain is allowed</li>
+              <li>No password registration needed</li>
+              <li>New employees auto-provisioned on first login</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card" style="padding: 16px; background: var(--bg-green);">
+          <h3 style="font-size: 13px; color: #1a8a00; margin-bottom: 6px;">Roles work the same in both modes</h3>
+          <p style="font-size: 13px;">Admin, Manager, Member, Viewer — the four default roles apply regardless of login method. The admin assigns roles after first login. Claude handles the plumbing automatically.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== SLIDE: APP ISOLATION ==================== -->
+    <div class="slide" data-slide="22">
+      <div class="slide-scroll">
+        <h2>App <span class="highlight-purple">Isolation</span></h2>
+        <p class="subtitle" style="margin-bottom:16px;">Multiple apps share company infrastructure without ever seeing each other's data.</p>
+
+        <div class="card" style="padding: 16px; margin-bottom: 12px;">
+          <h3 style="font-size: 14px; margin-bottom: 10px;">One schema per app</h3>
+          <p style="font-size: 13px;">On the company server, each app gets its own dedicated slice of the shared database. The HR Leave Tracker and the HR Onboarding Tool both live on the same database server, but their tables are completely separate — one can never read the other's data.</p>
+        </div>
+
+        <div class="grid-2" style="gap: 12px; margin-bottom: 12px;">
+          <div class="card" style="padding: 14px; background: rgba(22,121,250,0.06);">
+            <h3 style="font-size: 13px; color: var(--blue); margin-bottom: 6px;">Database</h3>
+            <p style="font-size: 12px;">Each app: its own schema (e.g. <code>hr_leave_tracker</code>) and its own database user. The app can only access its own tables.</p>
+          </div>
+          <div class="card" style="padding: 14px; background: var(--bg-lavender);">
+            <h3 style="font-size: 13px; color: var(--purple); margin-bottom: 6px;">File storage</h3>
+            <p style="font-size: 12px;">Each app: its own storage container (e.g. <code>hr_leave_tracker</code>). Files never mix between apps.</p>
+          </div>
+        </div>
+
+        <div class="big-quote">
+          IT provisions the shared server once. Claude automatically configures each new app's isolation at scaffold time — no manual schema setup needed.
+        </div>
+      </div>
+    </div>
+
     <!-- ==================== SLIDE: ROLES & PERMISSIONS ==================== -->
-    <div class="slide" data-slide="19">
+    <div class="slide" data-slide="23">
       <div class="slide-scroll">
         <h2>Roles &amp; <span class="highlight-purple">Permissions</span></h2>
         <p class="subtitle" style="margin-bottom:16px;">Built-in access control from day one.</p>
@@ -1473,7 +1605,7 @@
     </div>
 
     <!-- ==================== SLIDE 15: QUICK REFERENCE ==================== -->
-    <div class="slide" data-slide="20">
+    <div class="slide" data-slide="24">
       <div class="slide-scroll">
         <h2>Quick Reference</h2>
         <p class="subtitle" style="margin-bottom:16px;">Everything on one slide. Bookmark this one.</p>
@@ -1519,7 +1651,7 @@
     </div>
 
     <!-- ==================== SLIDE 16: CLOSING ==================== -->
-    <div class="slide closing-slide" data-slide="21">
+    <div class="slide closing-slide" data-slide="25">
       <div class="closing-line">Build freely. Deploy safely. Quality is automatic.</div>
       <div class="closing-line" style="margin-top: 20px;">Start with MVP. Graduate to production. At your own pace.</div>
       <div class="closing-line" style="color: var(--blue);">All invisible. All automatic. All in plain English.</div>

@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-# Master CI/CD pipeline orchestrator — gate-level aware
+# Master CI/CD pipeline orchestrator — gate-level and deploy-target aware
 # Usage: bash .claude/scripts/run-pipeline.sh [mvp|team|production]
+# Env:   DEPLOY_TARGET=vercel|azure  (defaults to vercel if unset)
 # Reads .claude/deploy-gates.json for stage requirements per gate level
 # Exit 0 = PIPELINE PASSED, Exit 1 = PIPELINE FAILED
 
 GATE_LEVEL="${1:-production}"
+DEPLOY_TARGET="${DEPLOY_TARGET:-vercel}"
 PIPELINE_START=$(date +%s)
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
@@ -18,10 +20,11 @@ trap 'echo "build" > .claude/mode' EXIT
 rm -rf .claude/tmp
 mkdir -p .claude/tmp
 
-echo "═══════════════════════════════════════════════════════════"
+echo "==========================================================="
 echo " CI/CD PIPELINE — $TIMESTAMP"
-echo " Gate level: $GATE_LEVEL"
-echo "═══════════════════════════════════════════════════════════"
+echo " Gate level:     $GATE_LEVEL"
+echo " Deploy target:  $DEPLOY_TARGET"
+echo "==========================================================="
 echo ""
 
 # Read gate config
@@ -31,15 +34,25 @@ if [[ ! -f "$DEPLOY_GATES" ]]; then
     exit 1
 fi
 
-# Check if a stage is required for current gate level
+# Check if a stage is required for current gate + target
+# Checks common.requires first, then target-specific requires
 stage_required() {
     local stage="$1"
     if command -v jq &>/dev/null; then
-        jq -e ".\"$GATE_LEVEL\".requires | index(\"$stage\")" "$DEPLOY_GATES" &>/dev/null
-        return $?
+        # Check common requires
+        if jq -e ".\"$GATE_LEVEL\".common.requires | index(\"$stage\")" "$DEPLOY_GATES" &>/dev/null; then
+            return 0
+        fi
+        # Check target-specific requires
+        if jq -e ".\"$GATE_LEVEL\".\"$DEPLOY_TARGET\".requires | index(\"$stage\")" "$DEPLOY_GATES" &>/dev/null; then
+            return 0
+        fi
+        return 1
     fi
-    # Fallback: grep-based check
-    grep -q "\"$stage\"" <<< "$(grep -A 20 "\"$GATE_LEVEL\"" "$DEPLOY_GATES" | grep -A 10 '"requires"')"
+    # Fallback: grep-based check against both sections
+    local gate_block
+    gate_block=$(grep -A 60 "\"$GATE_LEVEL\"" "$DEPLOY_GATES" 2>/dev/null | head -60)
+    grep -q "\"$stage\"" <<< "$gate_block"
 }
 
 # Track stage results
@@ -47,18 +60,18 @@ declare -a FAILED_STAGES=()
 declare -A STAGE_STATUS=()
 declare -A STAGE_PIDS=()
 
-# ============================================================
+# ===========================================================
 # Stage: Security Scan (always runs)
-# ============================================================
+# ===========================================================
 echo "Running security scan..."
 (
     bash .claude/scripts/security-scan.sh > .claude/tmp/security-output.txt 2>&1
 ) &
 STAGE_PIDS[security]=$!
 
-# ============================================================
+# ===========================================================
 # Stage: Smoke Test (mvp and above)
-# ============================================================
+# ===========================================================
 if stage_required "app-starts" || stage_required "happy-path-works"; then
     echo "Running smoke tests..."
     (
@@ -69,9 +82,9 @@ else
     STAGE_STATUS[smoke]="SKIP"
 fi
 
-# ============================================================
+# ===========================================================
 # Stage: Unit Tests (team and above)
-# ============================================================
+# ===========================================================
 if stage_required "unit-tests"; then
     echo "Running unit tests..."
     (
@@ -109,9 +122,9 @@ else
     STAGE_STATUS[unit]="SKIP"
 fi
 
-# ============================================================
+# ===========================================================
 # Stage: Integration Tests (production only)
-# ============================================================
+# ===========================================================
 if stage_required "integration-tests"; then
     echo "Running integration tests..."
     (
@@ -135,9 +148,9 @@ else
     STAGE_STATUS[integration]="SKIP"
 fi
 
-# ============================================================
-# Stage: UI Tests (production only)
-# ============================================================
+# ===========================================================
+# Stage: UI Tests (team and above)
+# ===========================================================
 if stage_required "ui-tests"; then
     echo "Running UI tests..."
     (
@@ -166,9 +179,9 @@ else
     STAGE_STATUS[ui]="SKIP"
 fi
 
-# ============================================================
+# ===========================================================
 # Stage: Performance (production only)
-# ============================================================
+# ===========================================================
 if stage_required "performance"; then
     echo "Running performance tests..."
     (
@@ -196,7 +209,8 @@ if stage_required "performance"; then
         OVERALL="PASS"
         [[ "$K6_STATUS" == "FAIL" || "$LH_STATUS" == "FAIL" ]] && OVERALL="FAIL"
         [[ "$K6_STATUS" == "SKIP" && "$LH_STATUS" == "SKIP" ]] && OVERALL="SKIP"
-        printf '{"stage":"performance","k6":"%s","lighthouse":"%s","overall_status":"%s"}' "$K6_STATUS" "$LH_STATUS" "$OVERALL" > .claude/tmp/k6-summary.json
+        printf '{"stage":"performance","k6":"%s","lighthouse":"%s","overall_status":"%s"}' \
+            "$K6_STATUS" "$LH_STATUS" "$OVERALL" > .claude/tmp/k6-summary.json
         [[ "$OVERALL" == "FAIL" ]] && exit 1 || exit 0
     ) &
     STAGE_PIDS[perf]=$!
@@ -204,14 +218,90 @@ else
     STAGE_STATUS[perf]="SKIP"
 fi
 
-# ============================================================
+# ===========================================================
+# Azure-specific: Schema isolation check
+# ===========================================================
+if [[ "$DEPLOY_TARGET" == "azure" ]] && stage_required "schema-isolation-check"; then
+    echo "Running Azure schema isolation check..."
+    (
+        APP_SCHEMA="${APP_SCHEMA:-}"
+        ISSUES=0
+
+        if [[ -z "$APP_SCHEMA" ]]; then
+            echo "  WARNING: APP_SCHEMA not set — schema isolation cannot be verified"
+            ISSUES=$((ISSUES + 1))
+        fi
+
+        # Check migrations don't reference a hardcoded schema name
+        if [[ -d "supabase/migrations" && -n "$APP_SCHEMA" ]]; then
+            OTHER_SCHEMAS=$(grep -rE '\bSET\s+search_path\s+TO\s+' supabase/migrations/ 2>/dev/null \
+                | grep -v "$APP_SCHEMA" | grep -v "public" | head -5 || true)
+            if [[ -n "$OTHER_SCHEMAS" ]]; then
+                echo "  WARNING: Migrations reference schemas other than $APP_SCHEMA"
+                echo "$OTHER_SCHEMAS"
+                ISSUES=$((ISSUES + 1))
+            fi
+        fi
+
+        if [[ -n "$BLOB_CONTAINER" && "$BLOB_CONTAINER" == "$APP_SCHEMA" ]]; then
+            echo "  + BLOB_CONTAINER matches APP_SCHEMA: $BLOB_CONTAINER"
+        fi
+
+        if [[ $ISSUES -eq 0 ]]; then
+            echo '{"stage": "schema-isolation-check", "overall_status": "PASS"}' > .claude/tmp/schema-check-results.json
+            exit 0
+        else
+            echo '{"stage": "schema-isolation-check", "overall_status": "WARN", "issues": '"$ISSUES"'}' \
+                > .claude/tmp/schema-check-results.json
+            exit 0  # Warn only, don't fail pipeline
+        fi
+    ) &
+    STAGE_PIDS[schema]=$!
+else
+    STAGE_STATUS[schema]="SKIP"
+fi
+
+# ===========================================================
+# Azure-specific: Docker build
+# ===========================================================
+if [[ "$DEPLOY_TARGET" == "azure" ]] && stage_required "docker-build"; then
+    echo "Running Docker build check..."
+    (
+        if [[ ! -f "Dockerfile" ]]; then
+            echo "  WARNING: Dockerfile not found — run scaffold-azure-configs.sh first"
+            echo '{"stage": "docker-build", "overall_status": "SKIP", "reason": "No Dockerfile"}' \
+                > .claude/tmp/docker-build-results.json
+            exit 0
+        fi
+        if ! command -v docker &>/dev/null; then
+            echo "  WARNING: Docker not available — skipping build check"
+            echo '{"stage": "docker-build", "overall_status": "SKIP", "reason": "Docker not found"}' \
+                > .claude/tmp/docker-build-results.json
+            exit 0
+        fi
+        docker build -t pipeline-check:latest . > .claude/tmp/docker-build.log 2>&1
+        if [[ $? -eq 0 ]]; then
+            docker rmi pipeline-check:latest &>/dev/null || true
+            echo '{"stage": "docker-build", "overall_status": "PASS"}' > .claude/tmp/docker-build-results.json
+            exit 0
+        else
+            echo '{"stage": "docker-build", "overall_status": "FAIL"}' > .claude/tmp/docker-build-results.json
+            exit 1
+        fi
+    ) &
+    STAGE_PIDS[docker]=$!
+else
+    STAGE_STATUS[docker]="SKIP"
+fi
+
+# ===========================================================
 # Wait for all stages
-# ============================================================
+# ===========================================================
 echo ""
 echo "Waiting for stages to complete..."
 echo ""
 
-for stage in security smoke unit integration ui perf; do
+for stage in security smoke unit integration ui perf schema docker; do
     if [[ -n "${STAGE_PIDS[$stage]+x}" ]]; then
         wait "${STAGE_PIDS[$stage]}" 2>/dev/null
         EXIT_CODE=$?
@@ -230,29 +320,31 @@ done
 
 echo ""
 
-# ============================================================
+# ===========================================================
 # Gate Decision
-# ============================================================
+# ===========================================================
 
 if [[ ${#FAILED_STAGES[@]} -gt 0 ]]; then
-    echo "═══════════════════════════════════════════════════════════"
+    echo "==========================================================="
     echo " GATE: STAGES FAILED — ${FAILED_STAGES[*]}"
-    echo "═══════════════════════════════════════════════════════════"
+    echo "==========================================================="
 
     PIPELINE_END=$(date +%s)
     DURATION=$((PIPELINE_END - PIPELINE_START))
 
     cat > .claude/tmp/pipeline-results.md << RESULTS_EOF
-Pipeline Results ($GATE_LEVEL gate)
+Pipeline Results ($GATE_LEVEL gate / $DEPLOY_TARGET)
 Timestamp: $TIMESTAMP | Duration: ${DURATION}s
 
-Security:    ${STAGE_STATUS[security]:-SKIP}
-Smoke:       ${STAGE_STATUS[smoke]:-SKIP}
-Unit Tests:  ${STAGE_STATUS[unit]:-SKIP}
-Integration: ${STAGE_STATUS[integration]:-SKIP}
-UI Tests:    ${STAGE_STATUS[ui]:-SKIP}
-Performance: ${STAGE_STATUS[perf]:-SKIP}
-Opus Review: SKIPPED
+Security:         ${STAGE_STATUS[security]:-SKIP}
+Smoke:            ${STAGE_STATUS[smoke]:-SKIP}
+Unit Tests:       ${STAGE_STATUS[unit]:-SKIP}
+Integration:      ${STAGE_STATUS[integration]:-SKIP}
+UI Tests:         ${STAGE_STATUS[ui]:-SKIP}
+Performance:      ${STAGE_STATUS[perf]:-SKIP}
+Schema Check:     ${STAGE_STATUS[schema]:-SKIP}
+Docker Build:     ${STAGE_STATUS[docker]:-SKIP}
+Opus Review:      SKIPPED
 
 GATE DECISION: PIPELINE FAILED
 RESULTS_EOF
@@ -261,23 +353,22 @@ RESULTS_EOF
     exit 1
 fi
 
-# ============================================================
+# ===========================================================
 # Stage: Opus Code Review (production gate only)
-# ============================================================
+# ===========================================================
 
 OPUS_STATUS="SKIP"
 OPUS_EXIT=0
 
 if stage_required "opus-review"; then
-    echo "═══════════════════════════════════════════════════════════"
+    echo "==========================================================="
     echo " ALL TESTS PASSED — Proceeding to Opus Code Review"
-    echo "═══════════════════════════════════════════════════════════"
+    echo "==========================================================="
     echo ""
 
     bash .claude/scripts/build-review-payload.sh
     echo ""
 
-    # Run with 5 minute timeout
     timeout 300 bash .claude/scripts/invoke-opus-reviewer.sh
     OPUS_EXIT=$?
 
@@ -285,9 +376,9 @@ if stage_required "opus-review"; then
     [[ $OPUS_EXIT -ne 0 ]] && OPUS_STATUS="CHANGES REQUIRED"
 fi
 
-# ============================================================
+# ===========================================================
 # Final Report
-# ============================================================
+# ===========================================================
 
 PIPELINE_END=$(date +%s)
 DURATION=$((PIPELINE_END - PIPELINE_START))
@@ -300,16 +391,18 @@ if [[ $OPUS_EXIT -ne 0 ]]; then
 fi
 
 cat > .claude/tmp/pipeline-results.md << RESULTS_EOF
-Pipeline Results ($GATE_LEVEL gate)
+Pipeline Results ($GATE_LEVEL gate / $DEPLOY_TARGET)
 Timestamp: $TIMESTAMP | Duration: ${DURATION}s
 
-Security:    ${STAGE_STATUS[security]:-SKIP}
-Smoke:       ${STAGE_STATUS[smoke]:-SKIP}
-Unit Tests:  ${STAGE_STATUS[unit]:-SKIP}
-Integration: ${STAGE_STATUS[integration]:-SKIP}
-UI Tests:    ${STAGE_STATUS[ui]:-SKIP}
-Performance: ${STAGE_STATUS[perf]:-SKIP}
-Opus Review: $OPUS_STATUS
+Security:         ${STAGE_STATUS[security]:-SKIP}
+Smoke:            ${STAGE_STATUS[smoke]:-SKIP}
+Unit Tests:       ${STAGE_STATUS[unit]:-SKIP}
+Integration:      ${STAGE_STATUS[integration]:-SKIP}
+UI Tests:         ${STAGE_STATUS[ui]:-SKIP}
+Performance:      ${STAGE_STATUS[perf]:-SKIP}
+Schema Check:     ${STAGE_STATUS[schema]:-SKIP}
+Docker Build:     ${STAGE_STATUS[docker]:-SKIP}
+Opus Review:      $OPUS_STATUS
 
 GATE DECISION: $OVERALL_DECISION
 RESULTS_EOF
@@ -317,16 +410,15 @@ RESULTS_EOF
 echo ""
 cat .claude/tmp/pipeline-results.md
 
-# ============================================================
+# ===========================================================
 # RBAC Verification (team and above)
-# ============================================================
+# ===========================================================
 
 if stage_required "rbac-check"; then
     echo ""
     echo "Verifying RBAC setup..."
     RBAC_OK=true
 
-    # Check roles table exists
     if [[ -f "supabase/migrations/00000000000001_rbac.sql" ]]; then
         echo "  + RBAC migration exists"
     else
@@ -334,7 +426,6 @@ if stage_required "rbac-check"; then
         RBAC_OK=false
     fi
 
-    # Check RBAC middleware exists
     if [[ -f "backend/middleware/rbac.py" ]]; then
         echo "  + RBAC middleware exists"
     else
@@ -342,7 +433,6 @@ if stage_required "rbac-check"; then
         RBAC_OK=false
     fi
 
-    # Check useRole composable exists
     if [[ -f "frontend/composables/useRole.ts" ]]; then
         echo "  + useRole composable exists"
     else
@@ -358,30 +448,64 @@ if stage_required "rbac-check"; then
     echo ""
 fi
 
-# ============================================================
-# Cloud Deploy (if DEPLOY_TARGET=cloud and pipeline passed)
-# ============================================================
+# ===========================================================
+# Target-specific deployment (if pipeline passed)
+# ===========================================================
 
-if [[ "${DEPLOY_TARGET:-}" == "cloud" ]] && [[ $FINAL_EXIT -eq 0 ]]; then
-    echo ""
-    echo "═══════════════════════════════════════════════════════════"
-    echo " Pipeline passed — proceeding to cloud deployment"
-    echo "═══════════════════════════════════════════════════════════"
-    echo ""
-    CLOUD_ENV="${ENVIRONMENT:-staging}"
-    if [[ -f ".claude/scripts/deploy-cloud.sh" ]]; then
-        bash .claude/scripts/deploy-cloud.sh "$CLOUD_ENV" || {
-            echo "WARNING: Cloud deployment failed." >&2
-            FINAL_EXIT=1
-        }
-    else
-        echo "WARNING: deploy-cloud.sh not found. Run scaffold-cloud-configs.sh first." >&2
+if [[ $FINAL_EXIT -eq 0 ]]; then
+    if [[ "$DEPLOY_TARGET" == "azure" ]]; then
+        # Check if azure deploy is enabled for this gate level
+        AZURE_ENABLED="false"
+        if command -v jq &>/dev/null; then
+            AZURE_ENABLED=$(jq -r ".\"$GATE_LEVEL\".azure.enabled // false" "$DEPLOY_GATES" 2>/dev/null || echo "false")
+        fi
+
+        if [[ "$AZURE_ENABLED" == "true" ]]; then
+            echo ""
+            echo "==========================================================="
+            echo " Pipeline passed — proceeding to Azure deployment"
+            echo "==========================================================="
+            echo ""
+            CLOUD_ENV="${ENVIRONMENT:-staging}"
+            if [[ -f ".claude/scripts/deploy-azure.sh" ]]; then
+                bash .claude/scripts/deploy-azure.sh "$CLOUD_ENV" || {
+                    echo "WARNING: Azure deployment failed." >&2
+                    FINAL_EXIT=1
+                }
+            else
+                echo "WARNING: deploy-azure.sh not found. Run scaffold-azure-configs.sh first." >&2
+            fi
+        fi
+
+    elif [[ "$DEPLOY_TARGET" == "cloud" || "$DEPLOY_TARGET" == "vercel" ]]; then
+        # Check if vercel deploy is enabled for this gate level
+        VERCEL_ENABLED="false"
+        if command -v jq &>/dev/null; then
+            VERCEL_ENABLED=$(jq -r ".\"$GATE_LEVEL\".vercel.enabled // false" "$DEPLOY_GATES" 2>/dev/null || echo "false")
+        fi
+
+        if [[ "$VERCEL_ENABLED" == "true" ]]; then
+            echo ""
+            echo "==========================================================="
+            echo " Pipeline passed — proceeding to cloud deployment"
+            echo "==========================================================="
+            echo ""
+            CLOUD_ENV="${ENVIRONMENT:-staging}"
+            if [[ -f ".claude/scripts/deploy-cloud.sh" ]]; then
+                bash .claude/scripts/deploy-cloud.sh "$CLOUD_ENV" || {
+                    echo "WARNING: Cloud deployment failed." >&2
+                    FINAL_EXIT=1
+                }
+            else
+                echo "WARNING: deploy-cloud.sh not found. Run scaffold-cloud-configs.sh first." >&2
+            fi
+        fi
     fi
 fi
 
-# ============================================================
+# ===========================================================
 # Changelog Update (only on pipeline pass)
-# ============================================================
+# ===========================================================
 
 if [[ $FINAL_EXIT -eq 0 ]]; then
     echo ""

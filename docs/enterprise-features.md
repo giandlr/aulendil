@@ -1,7 +1,7 @@
 # Enterprise Feature Requirements
 
 This is the canonical reference for all enterprise features required in every application
-built through Managers' Agent Fleet. Claude reads this file when a manager asks
+built through Aulendil. Claude reads this file when a manager asks
 "what features does my app need?"
 
 Every feature has a Tier. **Tier 1** features block the pipeline if absent.

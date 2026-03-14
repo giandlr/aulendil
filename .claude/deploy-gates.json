@@ -2,28 +2,56 @@
   "mvp": {
     "label": "Just me testing",
     "description": "Quick check that the app works and has no security issues",
-    "requires": ["security-scan", "app-starts", "happy-path-works"],
-    "skip": ["unit-tests", "integration-tests", "ui-tests", "performance", "opus-review", "rbac-check"],
-    "coverage": null,
-    "cloud": { "enabled": false },
+    "common": {
+      "requires": ["security-scan", "app-starts", "happy-path-works"],
+      "skip": ["unit-tests", "integration-tests", "ui-tests", "performance", "opus-review", "rbac-check"],
+      "coverage": null
+    },
+    "vercel": {
+      "enabled": false
+    },
+    "azure": {
+      "enabled": false,
+      "requires": ["docker-build"]
+    },
     "narration": "I'll do a quick security check and make sure the app starts up correctly."
   },
   "team": {
     "label": "Sharing with colleagues",
     "description": "Tests, UI tests, RBAC, and authentication verified",
-    "requires": ["security-scan", "unit-tests", "ui-tests", "basic-error-handling", "auth-works", "rbac-check"],
-    "skip": ["performance", "opus-review"],
-    "coverage": { "line": 60, "branch": 50 },
-    "cloud": { "enabled": true, "target": "vercel", "require_pipeline_pass": true },
+    "common": {
+      "requires": ["security-scan", "unit-tests", "ui-tests", "basic-error-handling", "auth-works", "rbac-check"],
+      "skip": ["performance", "opus-review"],
+      "coverage": { "line": 60, "branch": 50 }
+    },
+    "vercel": {
+      "enabled": true,
+      "require_pipeline_pass": true
+    },
+    "azure": {
+      "enabled": true,
+      "require_pipeline_pass": true,
+      "requires": ["schema-isolation-check", "docker-build", "docker-test", "azure-deploy", "smoke-test-production"]
+    },
     "narration": "I'll run the tests, check security, verify roles are set up, and make sure login works correctly."
   },
   "production": {
     "label": "External users / company-wide",
     "description": "Full test suite, performance checks, RBAC, and senior code review",
-    "requires": ["security-scan", "unit-tests", "integration-tests", "ui-tests", "performance", "opus-review", "tier1-enterprise", "rbac-check"],
-    "skip": [],
-    "coverage": { "line": 80, "branch": 70 },
-    "cloud": { "enabled": true, "target": "vercel", "require_pipeline_pass": true },
+    "common": {
+      "requires": ["security-scan", "unit-tests", "integration-tests", "ui-tests", "performance", "opus-review", "tier1-enterprise", "rbac-check"],
+      "skip": [],
+      "coverage": { "line": 80, "branch": 70 }
+    },
+    "vercel": {
+      "enabled": true,
+      "require_pipeline_pass": true
+    },
+    "azure": {
+      "enabled": true,
+      "require_pipeline_pass": true,
+      "requires": ["schema-isolation-check", "docker-build", "docker-test", "azure-deploy", "smoke-test-production"]
+    },
     "narration": "I'll run the full test suite, check performance, verify roles, and have a senior reviewer examine everything."
   }
 }

@@ -2,14 +2,14 @@
 set -euo pipefail
 
 # ─────────────────────────────────────────────────────
-# Package the Managers' Agent Fleet into a distributable zip
+# Package Aulendil into a distributable zip
 #
-# The zip extracts into a managers-agent-fleet/ subdirectory
-# so users can run: unzip managers-agent-fleet.zip
-#                   bash managers-agent-fleet/install.sh
+# The zip extracts into a aulendil/ subdirectory
+# so users can run: unzip aulendil.zip
+#                   bash aulendil/install.sh
 #
 # Usage: bash scripts/package.sh
-# Output: managers-agent-fleet.zip (in project root)
+# Output: aulendil.zip (in project root)
 # ─────────────────────────────────────────────────────
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -18,10 +18,10 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_DIR"
 
 # Clean previous build
-rm -rf .package-tmp managers-agent-fleet.zip
+rm -rf .package-tmp aulendil.zip
 
 # Create staging directory with the correct top-level name
-STAGE=".package-tmp/managers-agent-fleet"
+STAGE=".package-tmp/aulendil"
 mkdir -p "$STAGE"
 
 # Copy distributable files into the staging directory
@@ -30,12 +30,12 @@ cp CLAUDE.md "$STAGE/"
 cp CHANGELOG.md "$STAGE/"
 cp README.md "$STAGE/"
 cp prompt.md "$STAGE/"
-cp sprout-logo-01.svg "$STAGE/"
+cp logo-01.svg "$STAGE/"
 
 # scripts/
 mkdir -p "$STAGE/scripts"
-cp scripts/sprout-bootstrap.sh "$STAGE/scripts/"
-cp scripts/sprout-init.sh "$STAGE/scripts/"
+cp scripts/bootstrap.sh "$STAGE/scripts/"
+cp scripts/init.sh "$STAGE/scripts/"
 
 # docs/
 mkdir -p "$STAGE/docs"
@@ -43,7 +43,7 @@ cp docs/*.md "$STAGE/docs/"
 
 # manual/
 mkdir -p "$STAGE/manual"
-cp manual/sprout-guide.html "$STAGE/manual/"
+cp manual/guide.html "$STAGE/manual/"
 
 # .claude/ (full tree)
 for subdir in agents hooks hooks/lib rules reviewers scripts; do
@@ -65,7 +65,7 @@ done
 # Build the zip from the staging directory
 # The -j flag is NOT used — paths are preserved relative to .package-tmp/
 cd .package-tmp
-zip -r "$PROJECT_DIR/managers-agent-fleet.zip" managers-agent-fleet/
+zip -r "$PROJECT_DIR/aulendil.zip" aulendil/
 cd "$PROJECT_DIR"
 
 # Clean up
@@ -73,13 +73,13 @@ rm -rf .package-tmp
 
 # Verify
 echo ""
-echo "Built: managers-agent-fleet.zip"
+echo "Built: aulendil.zip"
 echo "Contents verify — top-level directory:"
-unzip -l managers-agent-fleet.zip | head -5
+unzip -l aulendil.zip | head -5
 echo "..."
-FILE_COUNT=$(unzip -l managers-agent-fleet.zip | tail -1 | awk '{print $2}')
+FILE_COUNT=$(unzip -l aulendil.zip | tail -1 | awk '{print $2}')
 echo "Total: $FILE_COUNT files"
 echo ""
 echo "Users extract with:"
-echo "  unzip managers-agent-fleet.zip"
-echo "  bash managers-agent-fleet/install.sh"
+echo "  unzip aulendil.zip"
+echo "  bash aulendil/install.sh"

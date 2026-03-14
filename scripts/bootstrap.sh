@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # ─────────────────────────────────────────────────────────────
-# Sprout Bootstrap — From empty directory to running app
+# Bootstrap — From empty directory to running app
 #
-# Usage: bash scripts/sprout-bootstrap.sh
+# Usage: bash scripts/bootstrap.sh
 #
 # This script:
 #   1. Scaffolds Nuxt 3 frontend + FastAPI backend + Supabase
@@ -34,7 +34,7 @@ esac
 
 echo ""
 echo "═══════════════════════════════════════════════════════════"
-echo " SPROUT BOOTSTRAP"
+echo " BOOTSTRAP"
 echo " $(date '+%Y-%m-%d %H:%M:%S')  |  Platform: $OS_TYPE"
 echo "═══════════════════════════════════════════════════════════"
 echo ""
@@ -198,7 +198,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI(
-    title=os.getenv("APP_NAME", "Sprout App"),
+    title=os.getenv("APP_NAME", "Aulendil"),
     version="0.1.0",
 )
 
@@ -376,7 +376,7 @@ fi
 # Create seed.sql with dev user for local development
 if [ ! -f "supabase/seed.sql" ]; then
     cat > supabase/seed.sql << 'SEEDEOF'
--- Dev user for local development: dev@sprout.local / devpassword123
+-- Dev user for local development: dev@aulendil.local / devpassword123
 INSERT INTO auth.users (
     id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
     raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
@@ -385,7 +385,7 @@ INSERT INTO auth.users (
     reauthentication_token, is_sso_user, is_anonymous
 ) VALUES (
     'a0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000',
-    'authenticated', 'authenticated', 'dev@sprout.local',
+    'authenticated', 'authenticated', 'dev@aulendil.local',
     crypt('devpassword123', gen_salt('bf')), now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     '{"display_name":"Dev User"}'::jsonb,
@@ -395,12 +395,12 @@ INSERT INTO auth.identities (
     id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at
 ) VALUES (
     'a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001',
-    'dev@sprout.local', 'email',
-    '{"sub":"a0000000-0000-0000-0000-000000000001","email":"dev@sprout.local"}'::jsonb,
+    'dev@aulendil.local', 'email',
+    '{"sub":"a0000000-0000-0000-0000-000000000001","email":"dev@aulendil.local"}'::jsonb,
     now(), now(), now()
 ) ON CONFLICT (provider_id, provider) DO NOTHING;
 SEEDEOF
-    echo "  Created supabase/seed.sql with dev user (dev@sprout.local / devpassword123)"
+    echo "  Created supabase/seed.sql with dev user (dev@aulendil.local / devpassword123)"
 fi
 
 # Append RBAC admin assignment to seed.sql
@@ -411,7 +411,7 @@ if [ -f "supabase/seed.sql" ] && ! grep -q "user_roles" supabase/seed.sql 2>/dev
 INSERT INTO user_roles (user_id, role_id)
 SELECT u.id, r.id
 FROM auth.users u, roles r
-WHERE u.email = 'dev@sprout.local' AND r.name = 'admin'
+WHERE u.email = 'dev@aulendil.local' AND r.name = 'admin'
 ON CONFLICT (user_id, role_id) DO NOTHING;
 SEEDEOF
     echo "  Added admin role assignment to supabase/seed.sql"
@@ -521,7 +521,7 @@ const envMissing = useState<string[]>('envMissing', () => [])
     <nav class="sticky top-0 z-50 border-b border-gray-800 bg-gray-950/80 backdrop-blur-sm">
       <div class="flex items-center justify-between max-w-7xl mx-auto px-6 h-14">
         <NuxtLink to="/" class="text-lg font-semibold text-white">
-          Sprout App
+          Aulendil
         </NuxtLink>
         <div class="flex items-center gap-4">
           <NuxtLink to="/" class="text-sm text-gray-400 hover:text-gray-200">
@@ -594,7 +594,7 @@ export default defineNuxtPlugin(() => {
 
   if (missing.length > 0) {
     envMissing.value = missing
-    console.warn(`[Sprout] Missing environment variables: ${missing.join(', ')}. The app will work without a database — data will appear once you connect Supabase.`)
+    console.warn(`[Aulendil] Missing environment variables: ${missing.join(', ')}. The app will work without a database — data will appear once you connect Supabase.`)
   }
 })
 PLUGINEOF
@@ -611,11 +611,11 @@ export default defineNuxtPlugin(async () => {
     if (session) return
 
     const { error } = await client.auth.signInWithPassword({
-      email: 'dev@sprout.local',
+      email: 'dev@aulendil.local',
       password: 'devpassword123',
     })
     if (!error) {
-      console.log('[Sprout] Auto-signed in as dev@sprout.local')
+      console.log('[Aulendil] Auto-signed in as dev@aulendil.local')
     }
   }
 })
@@ -677,7 +677,7 @@ test.describe("Authentication", () => {
   test("should handle login flow", async ({ page }) => {
     // Adapt: fill in credentials and submit
     // await page.goto("/login");
-    // await page.fill('[name="email"]', 'dev@sprout.local');
+    // await page.fill('[name="email"]', 'dev@aulendil.local');
     // await page.fill('[name="password"]', 'devpassword123');
     // await page.click('button[type="submit"]');
     // await expect(page).toHaveURL('/dashboard');
@@ -1094,17 +1094,17 @@ if command -v supabase &>/dev/null && command -v docker &>/dev/null; then
 
         # Write .env.local
         cat > .env.local << ENVEOF
-# Supabase local credentials (auto-generated by sprout-bootstrap.sh)
+# Supabase local credentials (auto-generated by bootstrap.sh)
 SUPABASE_URL=${SUPA_URL:-http://127.0.0.1:54321}
 SUPABASE_ANON_KEY=${SUPA_ANON:-}
 SUPABASE_SERVICE_ROLE_KEY=${SUPA_SERVICE:-}
 API_BASE_URL=http://localhost:8000
-APP_NAME=Sprout App
+APP_NAME=Aulendil
 ENVEOF
 
         # Also create frontend .env (NUXT_PUBLIC_ prefix required for runtimeConfig.public)
         cat > frontend/.env << ENVEOF
-# Supabase local credentials (auto-generated by sprout-bootstrap.sh)
+# Supabase local credentials (auto-generated by bootstrap.sh)
 NUXT_PUBLIC_SUPABASE_URL=${SUPA_URL:-http://127.0.0.1:54321}
 NUXT_PUBLIC_SUPABASE_ANON_KEY=${SUPA_ANON:-}
 NUXT_PUBLIC_API_BASE_URL=http://localhost:8000
@@ -1118,7 +1118,7 @@ ENVEOF
               INSERT INTO user_roles (user_id, role_id)
               SELECT u.id, r.id
               FROM auth.users u, roles r
-              WHERE u.email = 'dev@sprout.local' AND r.name = 'admin'
+              WHERE u.email = 'dev@aulendil.local' AND r.name = 'admin'
               ON CONFLICT (user_id, role_id) DO NOTHING;
             " 2>/dev/null || echo "  (RBAC assignment deferred — apply migration first)"
         fi
@@ -1141,7 +1141,7 @@ SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 API_BASE_URL=http://localhost:8000
-APP_NAME=Sprout App
+APP_NAME=Aulendil
 ENVEOF
 
     cat > frontend/.env << 'ENVEOF'
@@ -1189,7 +1189,7 @@ wait_for_url "http://localhost:8000/health" "Backend" || true
 wait_for_url "http://localhost:3000" "Frontend" || true
 
 # Save PIDs for easy cleanup
-cat > .sprout-pids << PIDEOF
+cat > .pids << PIDEOF
 BACKEND_PID=$BACKEND_PID
 FRONTEND_PID=$FRONTEND_PID
 PIDEOF
@@ -1246,7 +1246,7 @@ GITIGNORE_ENTRIES=(
     "CLAUDE.local.md"
     ".env.local"
     ".env"
-    ".sprout-pids"
+    ".pids"
     "backend/.venv/"
 )
 
@@ -1296,7 +1296,7 @@ echo "    Supabase:  http://127.0.0.1:54323 (Studio)"
 fi
 echo ""
 echo "  To stop the servers:"
-echo "    kill \$(cat .sprout-pids | grep PID | cut -d= -f2)"
+echo "    kill \$(cat .pids | grep PID | cut -d= -f2)"
 echo ""
 echo "  Next steps:"
 echo "    1. Edit CLAUDE.md — replace [APP_NAME] with your app name"

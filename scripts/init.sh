@@ -2,25 +2,25 @@
 set -euo pipefail
 
 # ─────────────────────────────────────────────────────────────
-# DEPRECATED — Use sprout-bootstrap.sh instead
+# DEPRECATED — Use bootstrap.sh instead
 #
-# sprout-bootstrap.sh does everything this script does PLUS:
+# bootstrap.sh does everything this script does PLUS:
 #   - Scaffolds the full Nuxt 3 + FastAPI + Supabase project
 #   - Starts all services automatically
 #   - Gives you a running app at localhost:3000
 #
-# Run: bash scripts/sprout-bootstrap.sh
+# Run: bash scripts/bootstrap.sh
 # ─────────────────────────────────────────────────────────────
 
 echo ""
-echo "  NOTE: sprout-init.sh has been replaced by sprout-bootstrap.sh"
+echo "  NOTE: init.sh has been replaced by bootstrap.sh"
 echo ""
-echo "  sprout-bootstrap.sh does everything this script does PLUS:"
+echo "  bootstrap.sh does everything this script does PLUS:"
 echo "    - Creates the full project structure (frontend + backend + database)"
 echo "    - Installs all dependencies"
 echo "    - Starts your app automatically"
 echo ""
-echo "  Run instead:  bash scripts/sprout-bootstrap.sh"
+echo "  Run instead:  bash scripts/bootstrap.sh"
 echo ""
 echo "  Continuing with legacy setup in 5 seconds... (Ctrl+C to cancel)"
 sleep 5
@@ -29,7 +29,7 @@ echo ""
 # Sprout Init — One-time setup script for new projects
 # Reads docs/tech-stack.md to determine what to install
 # Works on macOS and Windows (Git Bash / WSL)
-# Run from the project root: bash scripts/sprout-init.sh
+# Run from the project root: bash scripts/init.sh
 
 # ============================================================
 # Detect platform

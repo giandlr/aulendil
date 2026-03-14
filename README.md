@@ -1,4 +1,4 @@
-# Managers' Agent Fleet
+# Aulendil
 
 **Build enterprise apps by describing what you want in plain English.** Quality, security, and testing happen automatically behind the scenes.
 
@@ -12,15 +12,15 @@ This toolkit turns [Claude Code](https://docs.anthropic.com/en/docs/claude-code)
 # 1. Create a new project and initialize git
 mkdir my-app && cd my-app && git init
 
-# 2. Copy the toolkit zip and unzip it (creates managers-agent-fleet/ folder)
-cp /path/to/managers-agent-fleet.zip .
-unzip managers-agent-fleet.zip
+# 2. Copy the toolkit zip and unzip it (creates aulendil/ folder)
+cp /path/to/aulendil.zip .
+unzip aulendil.zip
 
 # 3. Install the toolkit (copies files, sets up .gitignore, cleans up)
-bash managers-agent-fleet/install.sh
+bash aulendil/install.sh
 
 # 4. Bootstrap your app (scaffolds everything + starts the servers)
-bash scripts/sprout-bootstrap.sh
+bash scripts/bootstrap.sh
 
 # 5. Open CLAUDE.md and replace [APP_NAME] with your app's name
 
@@ -37,7 +37,7 @@ After bootstrap completes, your app is already running:
 | API Docs        | http://localhost:8000/docs    |
 | Supabase Studio | http://localhost:54323        |
 
-A development user (`dev@sprout.local` / `devpassword123`) is seeded automatically for local testing.
+A development user (`dev@aulendil.local` / `devpassword123`) is seeded automatically for local testing.
 
 > **Note:** Toolkit files are automatically excluded from git. When you commit or deploy, only your project's source code is included — never the fleet infrastructure.
 
@@ -92,9 +92,9 @@ your-project/
 │   ├── enterprise-features.md  # Enterprise feature requirements
 │   └── changelog-guide.md      # Changelog conventions
 ├── scripts/
-│   └── sprout-bootstrap.sh     # One-command project setup
+│   └── bootstrap.sh     # One-command project setup
 ├── manual/
-│   └── sprout-guide.html       # Visual guide (open in browser, 20 slides)
+│   └── guide.html       # Visual guide (open in browser, 20 slides)
 ├── CLAUDE.md                   # Project rules for Claude Code
 ├── CHANGELOG.md                # Auto-maintained release history
 └── install.sh                  # Toolkit installer
@@ -116,7 +116,7 @@ The toolkit scaffolds projects with:
 - **Auth:** Supabase Auth (JWT) + RBAC (4 default roles)
 - **Testing:** Vitest + Playwright (frontend), pytest (backend)
 - **Quality:** ESLint, Prettier, vue-tsc, ruff, mypy, bandit
-- **Hosting:** Vercel (frontend SSR + backend serverless) + Supabase Cloud
+- **Hosting:** Cloud (Vercel + Supabase Cloud) or Company Server (Azure Container Apps)
 
 All technology decisions are defined in `docs/tech-stack.md`.
 
@@ -124,7 +124,7 @@ All technology decisions are defined in `docs/tech-stack.md`.
 
 ## The Bootstrap Script
 
-`scripts/sprout-bootstrap.sh` takes you from an empty project to a running app in one command:
+`scripts/bootstrap.sh` takes you from an empty project to a running app in one command:
 
 | Phase | What It Does |
 |-------|-------------|
@@ -187,9 +187,11 @@ An independent AI reviewer (Claude Opus) examines the code with zero knowledge o
 
 ---
 
-## Cloud Deployment
+## Deployment
 
-The toolkit supports deploying to Vercel (frontend + backend) with Supabase Cloud:
+The toolkit supports two deployment targets. Claude asks "company server or cloud?" when you say "ship it" — your choice sticks until you change it.
+
+### Cloud (Vercel)
 
 ```
 Vercel (single platform)
@@ -205,7 +207,7 @@ Supabase Cloud
 - **IT handoff:** Your IT team handles infrastructure → auto-generated setup guide
 - **Guided setup:** Not sure → full handoff doc + configs ready for when you are
 
-Say "deploy to cloud" or "make this live" to start. Estimated cloud costs: Vercel Pro ~$20/mo, Supabase Pro ~$25/mo.
+Say "deploy to cloud" or "make this live" to start. Estimated cloud costs: Vercel Pro ~$20/mo (estimated), Supabase Pro ~$25/mo (estimated).
 
 | Command | What It Does |
 |---------|-------------|
@@ -213,6 +215,38 @@ Say "deploy to cloud" or "make this live" to start. Estimated cloud costs: Verce
 | `bash .claude/scripts/deploy-cloud.sh [staging\|production]` | Deploys to Vercel |
 | `bash .claude/scripts/setup-supabase-cloud.sh <ref>` | Links + pushes to Supabase Cloud |
 | `bash .claude/scripts/generate-handoff-doc.sh` | Creates IT setup guide |
+
+### Company Server (Azure)
+
+```
+Azure Container Apps
+└── Docker Container
+    ├── Nuxt 3 SSR
+    └── FastAPI (uvicorn)
+    OAuth2 Proxy (sidecar) — handles Google SSO automatically
+
+Azure Database for PostgreSQL
+└── Shared server, one schema per app (APP_SCHEMA)
+
+Azure Blob Storage
+└── One container per app (BLOB_CONTAINER)
+```
+
+**For companies already on Azure + Google Workspace.** Employees log in with their company email automatically — no extra accounts needed. Each app stays isolated on the shared infrastructure.
+
+**Three deployment paths:**
+- **Self-service:** IT has Azure set up → scaffold configs → pipeline → deploy
+- **IT handoff:** IT handles infrastructure → auto-generated setup guide
+- **Guided setup:** Not sure → full handoff doc + configs ready for when you are
+
+Say "put this on the company server" or "make this live" to start. Estimated costs: ~$15–30/mo per app (estimated — see [Azure pricing calculator](https://azure.microsoft.com/en-us/pricing/calculator/)).
+
+| Command | What It Does |
+|---------|-------------|
+| `bash .claude/scripts/scaffold-azure-configs.sh` | Creates Dockerfile, docker-compose, env template, Container App config |
+| `bash .claude/scripts/deploy-azure.sh [staging\|production]` | Builds image → pushes to ACR → updates Container App |
+| `bash .claude/scripts/setup-azure-db.sh <app-schema>` | Creates per-app schema and database role |
+| `bash .claude/scripts/generate-azure-handoff-doc.sh` | Creates IT setup guide for Azure |
 
 ---
 
@@ -244,7 +278,7 @@ Bootstrap creates a complete RBAC foundation with 4 default roles:
 | **Member** | View and edit own resources |
 | **Viewer** | Read-only access |
 
-The dev user (`dev@sprout.local`) is automatically assigned the admin role. Claude adds app-specific RLS policies and role-aware features during build.
+The dev user (`dev@aulendil.local`) is automatically assigned the admin role. Claude adds app-specific RLS policies and role-aware features during build.
 
 **Backend:** `require_role("admin")` FastAPI dependency for protected endpoints.
 **Frontend:** `useRole()` composable for role-aware UI rendering.
@@ -253,7 +287,7 @@ The dev user (`dev@sprout.local`) is automatically assigned the admin role. Clau
 
 ## The Manual
 
-Open `manual/sprout-guide.html` in any browser for a visual walkthrough of the entire system (20 slides). Navigate with arrow keys or click the dots. Works offline — no external dependencies.
+Open `manual/guide.html` in any browser for a visual walkthrough of the entire system (26 slides). Navigate with arrow keys or click the dots. Works offline — no external dependencies.
 
 ---
 
@@ -261,6 +295,7 @@ Open `manual/sprout-guide.html` in any browser for a visual walkthrough of the e
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
+- **v1.3** — Azure deployment target (company server), dual-mode auth (Google SSO via OAuth2 Proxy), per-app schema isolation, 4 new Azure scripts, updated manual (26 slides)
 - **v1.2** — Cloud deployment (Vercel + Supabase Cloud), Playwright e2e testing with starter patterns, RBAC foundation (4 default roles), IT handoff doc generator, updated manual (22 slides)
 - **v1.1** — Discovery mode, session recovery, compressed instructions (~56% token reduction), gate-aware deploy pipeline, 6 new hook detections, two-part error messages, updated manual (20 slides)
 - **v1.0** — Initial release with build/deploy modes, three gate levels, Opus code review, hook system, bootstrap script

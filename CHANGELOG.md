@@ -14,6 +14,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 <!-- UNRELEASED_INSERT_POINT -->
 
+## [v1.3.0] — 2026-03-14
+
+## [v1.3.0] — 2026-03-14
+
+### Added
+- **Toolkit renamed to Aulendil:** "Managers' Agent Fleet" renamed to "Aulendil" (Quenya for "devoted to Aulë, the craftsman") across all files, docs, and the manual
+- **Azure deployment target:** Four new scripts (`scaffold-azure-configs.sh`, `deploy-azure.sh`, `setup-azure-db.sh`, `generate-azure-handoff-doc.sh`) for deploying to Azure Container Apps
+- **Google SSO via OAuth2 Proxy:** Employees log in with company email automatically — no extra accounts needed; dual-mode `get_current_user()` handles both Azure (X-Forwarded-Email) and Vercel (Supabase JWT) paths
+- **Per-app schema isolation:** Each Azure app gets its own PostgreSQL schema (`APP_SCHEMA`) and Blob Storage container (`BLOB_CONTAINER`) on shared infrastructure
+- **Azure deploy rule:** `.claude/rules/team-isolation.md` — blocks cross-schema queries, storage account key usage, and hardcoded container/schema names in Azure mode
+- **Azure auth rules:** `.claude/rules/auth.md` extended with OAuth2 Proxy pattern, first-login user creation, dual-mode `get_current_user()`, email domain restriction via `AZURE_ALLOWED_EMAIL_DOMAIN`
+- **Azure pipeline stages:** `run-pipeline.sh` now branches on `DEPLOY_TARGET` — common stages always run, then Vercel-specific or Azure-specific stages (schema-isolation-check, docker-build, docker-test, azure-deploy, smoke-test-production)
+- **Azure gate config:** `deploy-gates.json` restructured to `{common, vercel, azure}` per gate level
+- **Hook extensions:** `pre-write-guard.sh` detects embedded DB connection strings; `post-edit-enforce.sh` adds Azure-specific blocks (fires only when `DEPLOY_TARGET=azure`)
+- **Deploy flow UX:** CLAUDE.md Deploy Mode now asks "company server or cloud?" if `DEPLOY_TARGET` unset; language rule: never say "Azure"/"Vercel" in conversation
+- **Azure IT handoff doc:** Auto-generated `docs/azure-it-setup-guide.md` with resource group setup, Container Apps, PostgreSQL, Google OAuth client, OAuth2 Proxy config, VNet, Monitor alerts, DNS
+- **Manual updates:** 4 new slides (deployment target comparison, Azure architecture, dual auth modes, app isolation); version 1.6, 26 slides total
+
+### Changed
+- **Script renames:** `sprout-bootstrap.sh` → `bootstrap.sh`, `sprout-init.sh` → `init.sh`, `sprout-guide.html` → `guide.html`, `sprout-logo-01.svg` → `logo-01.svg`
+- **Dev user:** `dev@sprout.local` → `dev@aulendil.local`
+- **PID file:** `.sprout-pids` → `.pids`
+- **Docker tag:** `sprout-pipeline-check` → `pipeline-check`
+- **Deploy state:** Added `azure` object alongside existing `cloud` (Vercel) object
+
 ## [v1.2.0] — 2026-03-14
 
 ### Added
@@ -31,7 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **RBAC middleware:** `backend/middleware/rbac.py` with `require_role()` FastAPI dependency for protected endpoints
 - **useRole composable:** `frontend/composables/useRole.ts` with `hasRole()`, `isAdmin()`, `isManager()` for role-aware UI
 - **RBAC RLS policies:** Row Level Security on `roles` (authenticated read, admin modify) and `user_roles` (own read, admin manage all) tables
-- **Dev user admin role:** Bootstrap assigns admin role to `dev@sprout.local` after RBAC migration
+- **Dev user admin role:** Bootstrap assigns admin role to `dev@aulendil.local` after RBAC migration
 - **RBAC pipeline check:** Verifies `roles` table, RBAC middleware, and useRole composable exist at Team+ gates
 - **GitHub Actions workflow:** Optional `deploy.yml` for CI/CD with Vercel (`--with-github-actions` flag)
 
@@ -58,7 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **6 new hook detections:** Unsafe CORS (`allow_origins=["*"]`), missing RLS on CREATE TABLE, unindexed foreign keys, console.log blocking in deploy mode (excluding test files), missing error handling in route handlers, `SELECT *` without `.limit()`
 - **Configurable smoke test pages:** `SMOKE_PAGES` environment variable for custom page paths
 - **Opus reviewer timeout:** 5-minute timeout with `OPUS_TIMEOUT` override; `--allowedTools` flag auto-detection
-- **Packaging script:** `scripts/package.sh` builds distributable zip with correct `managers-agent-fleet/` top-level directory
+- **Packaging script:** `scripts/package.sh` builds distributable zip with correct `aulendil/` top-level directory
 - **Manual updates:** 3 new slides (Start With Discovery, Deploy Flow, Tips for Working With Claude), offline fonts, version 1.4
 
 ### Changed
@@ -66,11 +91,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CLAUDE.md restructured:** Discovery Mode, Build Mode, Deploy Mode, Session Lifecycle sections; architectural rules deduplicated to rules files; sub-agent section replaced with pointer
 - **Deploy pipeline refactored:** Mode switching via trap (auto-restores build mode on exit), tmp directory cleanup, stage-aware parallel execution
 - **Stop hook streamlined:** All mid-process stderr removed; only final summary line printed; details go to audit.log only
-- **Manual installation instructions:** Clarified that unzip creates `managers-agent-fleet/` subdirectory; added explanation of automatic cleanup
+- **Manual installation instructions:** Clarified that unzip creates `aulendil/` subdirectory; added explanation of automatic cleanup
 - **Gitignore entries:** Streamlined comments in install.sh gitignore block
 
 ### Fixed
-- **Zip structure:** Zip now extracts into `managers-agent-fleet/` subdirectory (was extracting flat into project root, mismatching install.sh expectations)
+- **Zip structure:** Zip now extracts into `aulendil/` subdirectory (was extracting flat into project root, mismatching install.sh expectations)
 - **deploy-state.json:** Nulled out contradictory populated fields (`deployed_at`, `deployed_by`, `deployed_version`) that conflicted with `deployment_status: "not-deployed"`
 - **Opus reviewer:** Fixed `--allowedTools` flag check (now auto-detects if claude CLI supports it)
 

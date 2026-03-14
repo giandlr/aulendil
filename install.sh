@@ -2,31 +2,31 @@
 set -euo pipefail
 
 # ─────────────────────────────────────────────────────
-# Managers' Agent Fleet Installer
+# Aulendil Installer
 #
 # Usage:
-#   1. Copy managers-agent-fleet.zip into your project root
-#   2. unzip managers-agent-fleet.zip
-#   3. bash managers-agent-fleet/install.sh
+#   1. Copy aulendil.zip into your project root
+#   2. unzip aulendil.zip
+#   3. bash aulendil/install.sh
 #
-# The installer copies files from the managers-agent-fleet/
+# The installer copies files from the aulendil/
 # folder into your project, then cleans up after itself.
 # ─────────────────────────────────────────────────────
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Safety check: make sure we're inside a managers-agent-fleet/ subfolder
-if [ "$(basename "$SCRIPT_DIR")" != "managers-agent-fleet" ]; then
+# Safety check: make sure we're inside a aulendil/ subfolder
+if [ "$(basename "$SCRIPT_DIR")" != "aulendil" ]; then
   echo ""
-  echo "  Error: install.sh must be inside a managers-agent-fleet/ folder."
-  echo "  Expected: unzip managers-agent-fleet.zip → then run bash managers-agent-fleet/install.sh"
+  echo "  Error: install.sh must be inside a aulendil/ folder."
+  echo "  Expected: unzip aulendil.zip → then run bash aulendil/install.sh"
   echo ""
   exit 1
 fi
 
 echo ""
-echo "  Installing Managers' Agent Fleet into: $PROJECT_DIR"
+echo "  Installing Aulendil into: $PROJECT_DIR"
 echo ""
 
 # ── 1. Copy toolkit files ────────────────────────────
@@ -64,10 +64,10 @@ for doc in "$SCRIPT_DIR"/docs/*.md; do
   cp "$doc" "$PROJECT_DIR/docs/$(basename "$doc")"
 done
 
-# sprout-bootstrap.sh + sprout-init.sh (legacy)
+# bootstrap.sh + init.sh (legacy)
 mkdir -p "$PROJECT_DIR/scripts"
-cp "$SCRIPT_DIR/scripts/sprout-bootstrap.sh" "$PROJECT_DIR/scripts/sprout-bootstrap.sh"
-cp "$SCRIPT_DIR/scripts/sprout-init.sh" "$PROJECT_DIR/scripts/sprout-init.sh"
+cp "$SCRIPT_DIR/scripts/bootstrap.sh" "$PROJECT_DIR/scripts/bootstrap.sh"
+cp "$SCRIPT_DIR/scripts/init.sh" "$PROJECT_DIR/scripts/init.sh"
 
 # Cloud deployment scripts
 for script in deploy-cloud.sh scaffold-cloud-configs.sh generate-handoff-doc.sh setup-supabase-cloud.sh; do
@@ -100,22 +100,22 @@ case "$(uname -s)" in
   *)
     find "$PROJECT_DIR/.claude/hooks" -name "*.sh" -exec chmod +x {} \;
     find "$PROJECT_DIR/.claude/scripts" -name "*.sh" -exec chmod +x {} \;
-    chmod +x "$PROJECT_DIR/scripts/sprout-bootstrap.sh"
-    chmod +x "$PROJECT_DIR/scripts/sprout-init.sh"
+    chmod +x "$PROJECT_DIR/scripts/bootstrap.sh"
+    chmod +x "$PROJECT_DIR/scripts/init.sh"
     ;;
 esac
 
 # ── 3. Add .gitignore entries ────────────────────────
 
 GITIGNORE="$PROJECT_DIR/.gitignore"
-MARKER="# ── Managers' Agent Fleet (do not commit) ──"
+MARKER="# ── Aulendil (do not commit) ──"
 
 if [ -f "$GITIGNORE" ] && grep -qF "$MARKER" "$GITIGNORE"; then
   echo "  .gitignore already has toolkit entries — skipped."
 else
   cat >> "$GITIGNORE" <<'GITIGNORE_BLOCK'
 
-# ── Managers' Agent Fleet (do not commit) ──
+# ── Aulendil (do not commit) ──
 # AI toolkit config — hooks, rules, agents, scripts, session state
 .claude/
 # Project instructions (toolkit-managed, not project source)
@@ -130,11 +130,11 @@ docs/tech-stack.md
 docs/changelog-guide.md
 docs/enterprise-features.md
 # Toolkit scripts
-scripts/sprout-init.sh
-scripts/sprout-bootstrap.sh
+scripts/init.sh
+scripts/bootstrap.sh
 # Installer artefacts
-managers-agent-fleet/
-managers-agent-fleet.zip
+aulendil/
+aulendil.zip
 GITIGNORE_BLOCK
   echo "  Updated .gitignore — toolkit files will not be committed."
 fi
@@ -196,7 +196,7 @@ fi
 
 echo "  Cleaning up installer files..."
 rm -rf "$SCRIPT_DIR"
-rm -f "$PROJECT_DIR/managers-agent-fleet.zip"
+rm -f "$PROJECT_DIR/aulendil.zip"
 
 # ── 7. Done ──────────────────────────────────────────
 
@@ -204,7 +204,7 @@ echo ""
 echo "  Done! Next steps:"
 echo ""
 echo "    1. Edit CLAUDE.md — replace [APP_NAME] with your app's name"
-echo "    2. Run: bash scripts/sprout-bootstrap.sh    (scaffolds app + starts everything)"
+echo "    2. Run: bash scripts/bootstrap.sh    (scaffolds app + starts everything)"
 echo "    3. Open Claude Code and start describing what you want to build"
 echo ""
 echo "  How the mode system works:"

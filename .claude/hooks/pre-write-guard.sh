@@ -96,6 +96,10 @@ SECRET_PATTERNS=(
     'eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*'
     'ghp_[a-zA-Z0-9]{36}'
     'gho_[a-zA-Z0-9]{36}'
+    # Database connection strings with credentials embedded
+    'postgresql://[^:]+:[^@]{8,}@'
+    'mysql://[^:]+:[^@]{8,}@'
+    'mongodb(\+srv)?://[^:]+:[^@]{8,}@'
 )
 
 # Detect secret type for better messaging

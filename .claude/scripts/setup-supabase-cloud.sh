@@ -119,7 +119,7 @@ NUXT_PUBLIC_SUPABASE_URL=$CLOUD_URL
 NUXT_PUBLIC_SUPABASE_ANON_KEY=<paste-anon-key-from-dashboard>
 NUXT_PUBLIC_API_BASE_URL=<your-vercel-deployment-url>/api
 PRODUCTION_URL=<your-vercel-deployment-url>
-APP_NAME=${APP_NAME:-Sprout App}
+APP_NAME=${APP_NAME:-Aulendil}
 ENVEOF
 
 echo "  Generated .env.production (gitignored)"
