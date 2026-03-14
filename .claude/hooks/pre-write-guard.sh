@@ -30,7 +30,8 @@ fi
 
 # --- BLOCK: Sensitive file paths ---
 SENSITIVE_PATTERNS=(
-    '\.env'
+    '(^|/)\.env$'
+    '(^|/)\.env\.'
     '\.pem$'
     '\.key$'
     'id_rsa'
