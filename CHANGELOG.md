@@ -16,8 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v1.3.0] — 2026-03-14
 
-## [v1.3.0] — 2026-03-14
-
 ### Added
 - **Toolkit renamed to Aulendil:** "Managers' Agent Fleet" renamed to "Aulendil" (Quenya for "devoted to Aulë, the craftsman") across all files, docs, and the manual
 - **Azure deployment target:** Four new scripts (`scaffold-azure-configs.sh`, `deploy-azure.sh`, `setup-azure-db.sh`, `generate-azure-handoff-doc.sh`) for deploying to Azure Container Apps
