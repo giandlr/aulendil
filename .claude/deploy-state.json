@@ -3,9 +3,9 @@
   "last_pipeline_status": null,
   "last_opus_decision": null,
   "deployment_status": "not-deployed",
-  "deployed_at": null,
-  "deployed_by": null,
-  "deployed_version": null,
+  "deployed_at": "2026-03-14T06:26:00Z",
+  "deployed_by": "Gian dela Rama",
+  "deployed_version": "v1.0.0",
   "environment": null,
   "entries": []
 }
