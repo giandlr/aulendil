@@ -65,22 +65,27 @@
 
 *Mobile answer writes `INCLUDE_MOBILE=true` to `.env`; backend answer writes `BACKEND_LANGUAGE=python` or `BACKEND_LANGUAGE=csharp` to `.env`. Bootstrap reads these on next run.*
 
-**Round 2 — Core Features (challenge round, 1-2 questions):**
+**Round 2 — Core Features + Baseline (2 questions):**
 - Present feature options as multi-select based on Round 1
 - Challenge: "Is there anything I'm missing? Any approval workflows or external system connections?"
+- **Production baseline checklist** (see `production-baseline.md`): Based on the audience answer from Round 1, present the applicable baseline features as a yes/no checklist via AskUserQuestion. Frame as: "Here are a few things users almost always expect — which should I include?" For team/external apps this must include: forgot password, user management page, role assignment, user deactivation. For external apps also include: email verification, invite flow.
 
 **Round 3 — Data & Access (1 question):**
 - "Should everyone see everything, or only their own stuff?" (everyone / own only / role-based)
 
-**Skip condition:** If initial request has 3+ features AND mentions audience, generate brief directly.
+**Skip condition:** If initial request has 3+ features AND mentions audience, still run the baseline checklist — never skip it for team/external apps.
 
-**Output:** Write `.claude/brief.md` with: app name, description, users, features, data model sketch, access rules, out-of-scope. Update `[APP_NAME]` in CLAUDE.md, write `build` to `.claude/mode`, narrate plan, ask "Does this look right?"
+**Output:** Write `.claude/brief.md` with: app name, description, users, features (including confirmed baseline features), data model sketch, access rules, out-of-scope. Update `[APP_NAME]` in CLAUDE.md, write `build` to `.claude/mode`, narrate plan, ask "Does this look right?"
 
 ## Build Mode
 
 Default mode. Write correct code automatically, narrate in plain English.
 
+**Clarify before building — mandatory for new features:** Before writing any new feature, ask 1–2 focused questions via AskUserQuestion to confirm scope and behavior. Do not start building until these are answered. Good questions cover: who can do this action (all users or admins only?), what happens in the edge case (what if the item is already deleted?), and any specific UI expectation (table or cards?). Keep questions short with clickable options where possible. Skip clarification only for trivially obvious tasks (e.g. "fix that typo").
+
 **Auto-include:** Loading/error/empty states in Vue components, rate limiting + pagination + soft deletes + auth guards in Python/C# routes, RLS + standard columns + FK indexes in migrations, tests alongside implementation. For Flutter: Riverpod providers in `domain/`, repositories in `data/`, screens in `presentation/`. Narrate each in one sentence.
+
+**Production baseline:** After building the first substantive feature in a new project, check `production-baseline.md` against the audience confirmed in Discovery. If baseline features (forgot password, user management, role assignment, etc.) have not been built yet, flag them in plain English and offer to add them before moving on. Never silently skip this check.
 
 **Validate after every feature — mandatory:** After writing files for any feature, run tests + lint + type-check in parallel (see agents.md). Fix every failure before responding. Never hand back code that doesn't pass. The user should never see a broken state.
 

@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 <!-- UNRELEASED_INSERT_POINT -->
 
+## [v1.6.0] — 2026-03-17
+
+### Added
+- **Production baseline rule:** `.claude/rules/production-baseline.md` — defines the minimum feature set every real app needs, mapped by audience type. Covers: forgot password, email verification, user management page (list, deactivate, role assignment), invite flow, account settings, and first-user admin bootstrap. Includes exact implementation spec for each feature so Claude knows what to build, not just that it should exist.
+- **Discovery Mode baseline checklist:** Round 2 now presents applicable baseline features as a yes/no checklist via AskUserQuestion, framed as "things users almost always expect." For team/external apps this always includes forgot password, user management, role assignment, and user deactivation. Never skipped even when Discovery fast-paths.
+- **Clarify before building:** Build Mode now requires 1–2 focused clarification questions via AskUserQuestion before starting any new feature. Questions cover: who can perform the action, edge case behavior, and UI preference. Only skipped for trivially obvious tasks.
+- **Post-first-feature baseline check:** After the first substantive feature in a new project, Build Mode checks whether baseline features have been built and flags any gaps in plain English, offering to add them before continuing.
+
+### Changed
+- **Discovery Mode Round 2:** Added production baseline checklist step; skip condition for fast-path no longer bypasses the baseline check for team/external apps.
+- **Build Mode:** Added "Clarify before building" and "Production baseline" rules above the existing auto-include and validation rules.
+
 ## [v1.5.0] — 2026-03-16
 
 ### Added
