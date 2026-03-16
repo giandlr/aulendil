@@ -52,13 +52,12 @@ stage_required() {
     # Fallback: grep-based check against both sections
     local gate_block
     gate_block=$(grep -A 60 "\"$GATE_LEVEL\"" "$DEPLOY_GATES" 2>/dev/null | head -60)
-    grep -q "\"$stage\"" <<< "$gate_block"
+    echo "$gate_block" | grep -q "\"$stage\""
 }
 
-# Track stage results
-declare -a FAILED_STAGES=()
-declare -A STAGE_STATUS=()
-declare -A STAGE_PIDS=()
+# Track stage results (bash 3.2 compatible — no associative arrays)
+FAILED_STAGES=()
+# STAGE_PID_<name> and STAGE_STATUS_<name> set dynamically below
 
 # ===========================================================
 # Stage: Security Scan (always runs)
@@ -67,7 +66,7 @@ echo "Running security scan..."
 (
     bash .claude/scripts/security-scan.sh > .claude/tmp/security-output.txt 2>&1
 ) &
-STAGE_PIDS[security]=$!
+STAGE_PID_security=$!
 
 # ===========================================================
 # Stage: Smoke Test (mvp and above)
@@ -77,9 +76,9 @@ if stage_required "app-starts" || stage_required "happy-path-works"; then
     (
         GATE_LEVEL="$GATE_LEVEL" bash .claude/scripts/smoke-test.sh > .claude/tmp/smoke-output.txt 2>&1
     ) &
-    STAGE_PIDS[smoke]=$!
+    STAGE_PID_smoke=$!
 else
-    STAGE_STATUS[smoke]="SKIP"
+    STAGE_STATUS_smoke="SKIP"
 fi
 
 # ===========================================================
@@ -117,9 +116,9 @@ if stage_required "unit-tests"; then
             exit 1
         fi
     ) &
-    STAGE_PIDS[unit]=$!
+    STAGE_PID_unit=$!
 else
-    STAGE_STATUS[unit]="SKIP"
+    STAGE_STATUS_unit="SKIP"
 fi
 
 # ===========================================================
@@ -143,9 +142,9 @@ if stage_required "integration-tests"; then
             exit 0
         fi
     ) &
-    STAGE_PIDS[integration]=$!
+    STAGE_PID_integration=$!
 else
-    STAGE_STATUS[integration]="SKIP"
+    STAGE_STATUS_integration="SKIP"
 fi
 
 # ===========================================================
@@ -174,9 +173,9 @@ if stage_required "ui-tests"; then
             exit 0
         fi
     ) &
-    STAGE_PIDS[ui]=$!
+    STAGE_PID_ui=$!
 else
-    STAGE_STATUS[ui]="SKIP"
+    STAGE_STATUS_ui="SKIP"
 fi
 
 # ===========================================================
@@ -213,9 +212,9 @@ if stage_required "performance"; then
             "$K6_STATUS" "$LH_STATUS" "$OVERALL" > .claude/tmp/k6-summary.json
         [[ "$OVERALL" == "FAIL" ]] && exit 1 || exit 0
     ) &
-    STAGE_PIDS[perf]=$!
+    STAGE_PID_perf=$!
 else
-    STAGE_STATUS[perf]="SKIP"
+    STAGE_STATUS_perf="SKIP"
 fi
 
 # ===========================================================
@@ -256,9 +255,9 @@ if [[ "$DEPLOY_TARGET" == "azure" ]] && stage_required "schema-isolation-check";
             exit 0  # Warn only, don't fail pipeline
         fi
     ) &
-    STAGE_PIDS[schema]=$!
+    STAGE_PID_schema=$!
 else
-    STAGE_STATUS[schema]="SKIP"
+    STAGE_STATUS_schema="SKIP"
 fi
 
 # ===========================================================
@@ -289,9 +288,9 @@ if [[ "$DEPLOY_TARGET" == "azure" ]] && stage_required "docker-build"; then
             exit 1
         fi
     ) &
-    STAGE_PIDS[docker]=$!
+    STAGE_PID_docker=$!
 else
-    STAGE_STATUS[docker]="SKIP"
+    STAGE_STATUS_docker="SKIP"
 fi
 
 # ===========================================================
@@ -302,19 +301,22 @@ echo "Waiting for stages to complete..."
 echo ""
 
 for stage in security smoke unit integration ui perf schema docker; do
-    if [[ -n "${STAGE_PIDS[$stage]+x}" ]]; then
-        wait "${STAGE_PIDS[$stage]}" 2>/dev/null
+    pid_var="STAGE_PID_${stage}"
+    pid="${!pid_var:-}"
+    if [[ -n "$pid" ]]; then
+        wait "$pid" 2>/dev/null
         EXIT_CODE=$?
         if [[ $EXIT_CODE -eq 0 ]]; then
-            STAGE_STATUS[$stage]="PASS"
+            eval "STAGE_STATUS_${stage}=PASS"
             echo "  + $stage: PASS"
         else
-            STAGE_STATUS[$stage]="FAIL"
+            eval "STAGE_STATUS_${stage}=FAIL"
             FAILED_STAGES+=("$stage")
             echo "  x $stage: FAIL (exit $EXIT_CODE)"
         fi
     else
-        echo "  - $stage: ${STAGE_STATUS[$stage]:-SKIP}"
+        status_var="STAGE_STATUS_${stage}"
+        echo "  - $stage: ${!status_var:-SKIP}"
     fi
 done
 
@@ -336,14 +338,14 @@ if [[ ${#FAILED_STAGES[@]} -gt 0 ]]; then
 Pipeline Results ($GATE_LEVEL gate / $DEPLOY_TARGET)
 Timestamp: $TIMESTAMP | Duration: ${DURATION}s
 
-Security:         ${STAGE_STATUS[security]:-SKIP}
-Smoke:            ${STAGE_STATUS[smoke]:-SKIP}
-Unit Tests:       ${STAGE_STATUS[unit]:-SKIP}
-Integration:      ${STAGE_STATUS[integration]:-SKIP}
-UI Tests:         ${STAGE_STATUS[ui]:-SKIP}
-Performance:      ${STAGE_STATUS[perf]:-SKIP}
-Schema Check:     ${STAGE_STATUS[schema]:-SKIP}
-Docker Build:     ${STAGE_STATUS[docker]:-SKIP}
+Security:         ${STAGE_STATUS_security:-SKIP}
+Smoke:            ${STAGE_STATUS_smoke:-SKIP}
+Unit Tests:       ${STAGE_STATUS_unit:-SKIP}
+Integration:      ${STAGE_STATUS_integration:-SKIP}
+UI Tests:         ${STAGE_STATUS_ui:-SKIP}
+Performance:      ${STAGE_STATUS_perf:-SKIP}
+Schema Check:     ${STAGE_STATUS_schema:-SKIP}
+Docker Build:     ${STAGE_STATUS_docker:-SKIP}
 Opus Review:      SKIPPED
 
 GATE DECISION: PIPELINE FAILED
@@ -369,7 +371,11 @@ if stage_required "opus-review"; then
     bash .claude/scripts/build-review-payload.sh
     echo ""
 
-    timeout 300 bash .claude/scripts/invoke-opus-reviewer.sh
+    if command -v timeout &>/dev/null; then
+        timeout 300 bash .claude/scripts/invoke-opus-reviewer.sh
+    else
+        bash .claude/scripts/invoke-opus-reviewer.sh
+    fi
     OPUS_EXIT=$?
 
     OPUS_STATUS="APPROVED"
@@ -394,14 +400,14 @@ cat > .claude/tmp/pipeline-results.md << RESULTS_EOF
 Pipeline Results ($GATE_LEVEL gate / $DEPLOY_TARGET)
 Timestamp: $TIMESTAMP | Duration: ${DURATION}s
 
-Security:         ${STAGE_STATUS[security]:-SKIP}
-Smoke:            ${STAGE_STATUS[smoke]:-SKIP}
-Unit Tests:       ${STAGE_STATUS[unit]:-SKIP}
-Integration:      ${STAGE_STATUS[integration]:-SKIP}
-UI Tests:         ${STAGE_STATUS[ui]:-SKIP}
-Performance:      ${STAGE_STATUS[perf]:-SKIP}
-Schema Check:     ${STAGE_STATUS[schema]:-SKIP}
-Docker Build:     ${STAGE_STATUS[docker]:-SKIP}
+Security:         ${STAGE_STATUS_security:-SKIP}
+Smoke:            ${STAGE_STATUS_smoke:-SKIP}
+Unit Tests:       ${STAGE_STATUS_unit:-SKIP}
+Integration:      ${STAGE_STATUS_integration:-SKIP}
+UI Tests:         ${STAGE_STATUS_ui:-SKIP}
+Performance:      ${STAGE_STATUS_perf:-SKIP}
+Schema Check:     ${STAGE_STATUS_schema:-SKIP}
+Docker Build:     ${STAGE_STATUS_docker:-SKIP}
 Opus Review:      $OPUS_STATUS
 
 GATE DECISION: $OVERALL_DECISION

@@ -1,6 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Cross-platform Python detection
+_find_python() {
+    for _py in python3 python py; do
+        if command -v "$_py" &>/dev/null; then
+            echo "$_py"
+            return 0
+        fi
+    done
+    echo ""
+}
+PYTHON_CMD=$(_find_python)
+if [[ -z "$PYTHON_CMD" ]]; then
+    echo "ERROR: Python not found. Install Python 3 from https://python.org" >&2
+    exit 1
+fi
+
 # ─────────────────────────────────────────────────────────────
 # Deploy Cloud — Orchestrates Vercel deployment
 #
@@ -91,8 +107,8 @@ if [[ $DEPLOY_EXIT -ne 0 ]]; then
     echo ""
 
     # Update deploy state
-    if [ -f ".claude/deploy-state.json" ] && command -v python3 &>/dev/null; then
-        python3 -c "
+    if [ -f ".claude/deploy-state.json" ]; then
+        "$PYTHON_CMD" -c "
 import json
 with open('.claude/deploy-state.json') as f: state = json.load(f)
 state['cloud'] = state.get('cloud', {})
@@ -112,8 +128,8 @@ echo ""
 
 # ── 3. Update deploy state ───────────────────────────────────
 
-if [ -f ".claude/deploy-state.json" ] && command -v python3 &>/dev/null; then
-    python3 -c "
+if [ -f ".claude/deploy-state.json" ]; then
+    "$PYTHON_CMD" -c "
 import json
 with open('.claude/deploy-state.json') as f: state = json.load(f)
 state['deployment_status'] = 'deployed'

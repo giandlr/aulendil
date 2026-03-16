@@ -156,8 +156,8 @@ PERMISSIONS_MARKER='"Bash(*)"'
 if [ -f "$GLOBAL_SETTINGS" ] && grep -qF "$PERMISSIONS_MARKER" "$GLOBAL_SETTINGS"; then
   echo "  Global permissions already configured — skipped."
 else
-  if [ -f "$GLOBAL_SETTINGS" ] && command -v python3 &>/dev/null; then
-    python3 - "$GLOBAL_SETTINGS" <<'PYTHON_EOF'
+  if [ -f "$GLOBAL_SETTINGS" ] && { PYTHON_CMD=$(command -v python3 2>/dev/null || command -v python 2>/dev/null || command -v py 2>/dev/null); [ -n "$PYTHON_CMD" ]; }; then
+    "$PYTHON_CMD" - "$GLOBAL_SETTINGS" <<'PYTHON_EOF'
 import json, sys
 
 path = sys.argv[1]

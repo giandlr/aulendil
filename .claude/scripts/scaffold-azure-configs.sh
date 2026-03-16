@@ -1,6 +1,22 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
+# Cross-platform Python detection
+_find_python() {
+    for _py in python3 python py; do
+        if command -v "$_py" &>/dev/null; then
+            echo "$_py"
+            return 0
+        fi
+    done
+    echo ""
+}
+PYTHON_CMD=$(_find_python)
+if [[ -z "$PYTHON_CMD" ]]; then
+    echo "ERROR: Python not found. Install Python 3 from https://python.org" >&2
+    exit 1
+fi
+
 # Scaffold Azure deployment configs into the current project
 # Usage: bash .claude/scripts/scaffold-azure-configs.sh
 # Generates: Dockerfile, docker-compose.azure.yml, .env.azure.template,
@@ -183,7 +199,7 @@ fi
 #    See .claude/rules/auth.md — Azure Auth section for full spec
 # ----------------------------------------------------------
 if [[ -d "backend" && ! -f "backend/auth.py" ]]; then
-    python3 - << 'PYEOF'
+    "$PYTHON_CMD" - << 'PYEOF'
 import textwrap, pathlib
 content = textwrap.dedent('''
     """
@@ -252,7 +268,7 @@ fi
 #    See .claude/rules/auth.md — Azure Auth section for full spec
 # ----------------------------------------------------------
 if [[ -d "frontend/composables" && ! -f "frontend/composables/useAuth.ts" ]]; then
-    python3 - << 'PYEOF'
+    "$PYTHON_CMD" - << 'PYEOF'
 import textwrap, pathlib
 content = textwrap.dedent('''
     /**

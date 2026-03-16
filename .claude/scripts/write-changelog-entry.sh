@@ -1,6 +1,22 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
+# Cross-platform Python detection
+_find_python() {
+    for _py in python3 python py; do
+        if command -v "$_py" &>/dev/null; then
+            echo "$_py"
+            return 0
+        fi
+    done
+    echo ""
+}
+PYTHON_CMD=$(_find_python)
+if [[ -z "$PYTHON_CMD" ]]; then
+    echo "ERROR: Python not found. Install Python 3 from https://python.org" >&2
+    exit 1
+fi
+
 # write-changelog-entry.sh — Writes dev-log entry, updates CHANGELOG.md,
 # and updates deploy-state.json after a successful pipeline run.
 #
@@ -323,7 +339,7 @@ ENTRY_SUMMARY=$(cat <<ENTRY_JSON
     "commit": "$COMMIT_HASH",
     "branch": "$BRANCH",
     "author": "$AUTHOR_DISPLAY",
-    "message": $(echo "$COMMIT_MSG" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo "\"$COMMIT_MSG\""),
+    "message": $(echo "$COMMIT_MSG" | "$PYTHON_CMD" -c "import sys,json; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo "\"$COMMIT_MSG\""),
     "pipeline_status": "PASSED",
     "opus_decision": "$OPUS_DECISION",
     "deployment_status": "not-deployed"

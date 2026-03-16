@@ -1,6 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Cross-platform Python detection
+_find_python() {
+    for _py in python3 python py; do
+        if command -v "$_py" &>/dev/null; then
+            echo "$_py"
+            return 0
+        fi
+    done
+    echo ""
+}
+PYTHON_CMD=$(_find_python)
+if [[ -z "$PYTHON_CMD" ]]; then
+    echo "ERROR: Python not found. Install Python 3 from https://python.org" >&2
+    exit 1
+fi
+
 # ─────────────────────────────────────────────────────────────
 # Scaffold Cloud Configs
 #
@@ -151,7 +167,7 @@ if old_block in content:
 else:
     print("  WARNING: Could not find expected CORS block — patch manually")
 PYSCRIPT
-        python3 .claude/tmp/_cors_patch.py
+        "$PYTHON_CMD" .claude/tmp/_cors_patch.py
         rm -f .claude/tmp/_cors_patch.py
     else
         echo "  backend/main.py already has cloud CORS config — skipped"

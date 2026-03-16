@@ -47,11 +47,19 @@ if claude --help 2>&1 | grep -q -- '--allowedTools\|--allowed-tools'; then
     TOOLS_ARG="--allowedTools Read,Glob,Grep,Bash"
 fi
 
-REVIEW_RESULT=$(timeout "$TIMEOUT_SECS" claude -p \
-    --model claude-opus-4-6 \
-    --system-prompt "$SYSTEM_PROMPT" \
-    $TOOLS_ARG \
-    < "$PROMPT_FILE" 2>&1)
+if command -v timeout &>/dev/null; then
+    REVIEW_RESULT=$(timeout "$TIMEOUT_SECS" claude -p \
+        --model claude-opus-4-6 \
+        --system-prompt "$SYSTEM_PROMPT" \
+        $TOOLS_ARG \
+        < "$PROMPT_FILE" 2>&1)
+else
+    REVIEW_RESULT=$(claude -p \
+        --model claude-opus-4-6 \
+        --system-prompt "$SYSTEM_PROMPT" \
+        $TOOLS_ARG \
+        < "$PROMPT_FILE" 2>&1)
+fi
 CLAUDE_EXIT=$?
 rm -f "$PROMPT_FILE"
 

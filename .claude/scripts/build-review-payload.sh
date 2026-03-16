@@ -21,7 +21,7 @@ include_file() {
         echo '```json'
         head -n "$max_lines" "$file"
         local total_lines
-        total_lines=$(wc -l < "$file" 2>/dev/null || echo "0")
+        total_lines=$(wc -l < "$file" 2>/dev/null | tr -d ' ' || echo "0")
         if [[ "$total_lines" -gt "$max_lines" ]]; then
             echo "... (truncated: $total_lines total lines, showing first $max_lines)"
         fi
