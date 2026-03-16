@@ -14,6 +14,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 <!-- UNRELEASED_INSERT_POINT -->
 
+## [v1.5.0] — 2026-03-16
+
+### Added
+- **Framework updater:** `update.sh` — drop the new zip into an existing project, run `bash aulendil/update.sh`, and only framework-owned files are replaced. App code, `CLAUDE.md`, `.env`, and `.claude/mode` are never touched. Reports "Updated: v1.4.0 → v1.5.0" with a full list of what changed.
+- **Version tracking:** `VERSION` file embedded in the zip; stamped to `.claude/version` on install and updated by `update.sh` — projects always know which framework version they are on.
+- **Background server logs:** Bootstrap now starts backend and frontend in the background with output redirected to `logs/backend.log` and `logs/frontend.log`. Terminal is immediately usable after bootstrap. Summary screen shows `tail -f logs/backend.log` commands.
+- **Stop script:** `scripts/stop.sh` — reads `.pids` and kills both servers cleanly. Replaces the hard-to-remember one-liner from the previous bootstrap summary.
+- **Mandatory post-feature validation:** Build Mode now requires tests + lint + type-check after every feature implementation (not just at deploy time). Claude fixes all failures before responding — managers never see a broken state.
+
+### Changed
+- **`CLAUDE.md` is now project-only:** Reduced to 6 lines — just `[APP_NAME]` and an optional project notes section. All framework content (Tech Stack, Commands, Discovery Mode, Build Mode, Deploy Mode, Cloud Deploy Mode, Session Lifecycle, Definition of Done) moved to `.claude/rules/workflow.md`, which `update.sh` overwrites on every upgrade. Framework improvements now reach existing projects automatically.
+- **`.claude/rules/workflow.md` (new):** Contains all content previously in the body of `CLAUDE.md`. Updated on every framework upgrade via `update.sh`.
+- **`scripts/bootstrap.sh`:** Server startup section redirects output to `logs/`; summary shows log paths and `bash scripts/stop.sh` instead of the raw `kill` command. `logs/` added to `.gitignore` entries.
+- **`.claude/rules/agents.md`:** Build Mode validation changed from "only if explicitly asked" to "mandatory after every feature". Fix loop now re-validates until clean before responding.
+
 ## [v1.4.0] — 2026-03-16
 
 ### Added
