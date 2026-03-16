@@ -1206,37 +1206,37 @@ echo " Phase 4: Start"
 echo "───────────────────────────────────────────────────────────"
 echo ""
 
+# Create logs directory
+mkdir -p logs
+
 # Start backend
 echo "  Starting backend (FastAPI)..."
 if [ -f "$VENV_ACTIVATE" ]; then
     source "$VENV_ACTIVATE"
 fi
 cd backend
-uvicorn main:app --reload --port 8000 &
+uvicorn main:app --reload --port 8000 > ../logs/backend.log 2>&1 &
 BACKEND_PID=$!
 cd ..
-echo "  Backend starting on http://localhost:8000 (PID: $BACKEND_PID)"
 
 # Start frontend
 echo "  Starting frontend (Nuxt 3)..."
 cd frontend
-npm run dev -- --port 3000 &
+npm run dev -- --port 3000 > ../logs/frontend.log 2>&1 &
 FRONTEND_PID=$!
 cd ..
-echo "  Frontend starting on http://localhost:3000 (PID: $FRONTEND_PID)"
-
-echo ""
-
-# Wait for services
-echo "  Waiting for services to be ready..."
-wait_for_url "http://localhost:8000/health" "Backend" || true
-wait_for_url "http://localhost:3000" "Frontend" || true
 
 # Save PIDs for easy cleanup
 cat > .pids << PIDEOF
 BACKEND_PID=$BACKEND_PID
 FRONTEND_PID=$FRONTEND_PID
 PIDEOF
+
+echo ""
+
+# Wait for services (silently)
+wait_for_url "http://localhost:8000/health" "Backend" || true
+wait_for_url "http://localhost:3000" "Frontend" || true
 
 echo ""
 
@@ -1292,6 +1292,7 @@ GITIGNORE_ENTRIES=(
     ".env"
     ".pids"
     "backend/.venv/"
+    "logs/"
 )
 
 touch .gitignore
@@ -1339,8 +1340,12 @@ if $SUPABASE_RUNNING; then
 echo "    Supabase:  http://127.0.0.1:54323 (Studio)"
 fi
 echo ""
+echo "  Server logs (servers run in the background):"
+echo "    tail -f logs/backend.log"
+echo "    tail -f logs/frontend.log"
+echo ""
 echo "  To stop the servers:"
-echo "    kill \$(cat .pids | grep PID | cut -d= -f2)"
+echo "    bash scripts/stop.sh"
 echo ""
 echo "  Next steps:"
 echo "    1. Edit CLAUDE.md — replace [APP_NAME] with your app name"
