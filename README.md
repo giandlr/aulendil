@@ -109,13 +109,14 @@ your-project/
 The toolkit scaffolds projects with:
 
 - **Frontend:** Nuxt 3 / Vue 3 (Composition API) + TypeScript + TailwindCSS
-- **State:** Pinia
+- **Mobile (optional):** Flutter (iOS + Android) — Riverpod state, supabase_flutter, go_router
+- **State:** Pinia (web) / Riverpod 2 (mobile)
 - **Forms:** vee-validate + zod
-- **Backend:** FastAPI (Python 3.9+, async)
+- **Backend:** FastAPI (Python 3.9+, async) **or** ASP.NET Core 8 Minimal APIs + EF Core (C#)
 - **Database:** Supabase (PostgreSQL with Row Level Security)
 - **Auth:** Supabase Auth (JWT) + RBAC (4 default roles)
-- **Testing:** Vitest + Playwright (frontend), pytest (backend)
-- **Quality:** ESLint, Prettier, vue-tsc, ruff, mypy, bandit
+- **Testing:** Vitest + Playwright (frontend), pytest / xUnit (backend), flutter_test (mobile)
+- **Quality:** ESLint, Prettier, vue-tsc, ruff, mypy, bandit (Python) / dotnet format, Roslyn (C#), flutter analyze (mobile)
 - **Hosting:** Cloud (Vercel + Supabase Cloud) or Company Server (Azure Container Apps)
 
 All technology decisions are defined in `docs/tech-stack.md`.
@@ -287,7 +288,7 @@ The dev user (`dev@aulendil.local`) is automatically assigned the admin role. Cl
 
 ## The Manual
 
-Open `manual/guide.html` in any browser for a visual walkthrough of the entire system (26 slides). Navigate with arrow keys or click the dots. Works offline — no external dependencies.
+Open `manual/guide.html` in any browser for a visual walkthrough of the entire system (30 slides). Navigate with arrow keys or click the dots. Works offline — no external dependencies.
 
 ---
 
@@ -295,6 +296,7 @@ Open `manual/guide.html` in any browser for a visual walkthrough of the entire s
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
+- **v1.4** — Flutter mobile (iOS + Android) option, C# / ASP.NET Core 8 backend option, updated manual (30 slides)
 - **v1.3** — Azure deployment target (company server), dual-mode auth (Google SSO via OAuth2 Proxy), per-app schema isolation, 4 new Azure scripts, updated manual (26 slides)
 - **v1.2** — Cloud deployment (Vercel + Supabase Cloud), Playwright e2e testing with starter patterns, RBAC foundation (4 default roles), IT handoff doc generator, updated manual (22 slides)
 - **v1.1** — Discovery mode, session recovery, compressed instructions (~56% token reduction), gate-aware deploy pipeline, 6 new hook detections, two-part error messages, updated manual (20 slides)

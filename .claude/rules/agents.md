@@ -10,6 +10,7 @@ Use Task tool aggressively — sub-agents run in parallel and cut wall-clock tim
 ### When to Parallelize
 
 - Frontend + backend code for same feature
+- Frontend + mobile code for same feature (web + mobile layers are independent)
 - Tests + linting + type-checking after edits
 - Scaffolding files that don't import each other
 - Exploring unrelated parts of the codebase
@@ -23,11 +24,22 @@ Use Task tool aggressively — sub-agents run in parallel and cut wall-clock tim
 
 ### Validation Commands (run as parallel sub-agents)
 
+**Python backend:**
 - `cd backend && pytest --cov --cov-report=term-missing`
+- `cd backend && ruff check . && mypy .`
+
+**C# backend (when BACKEND_LANGUAGE=csharp):**
+- `cd backend && dotnet test --collect:"XPlat Code Coverage"`
+- `cd backend && dotnet format --verify-no-changes`
+
+**Frontend:**
 - `cd frontend && npm run test`
 - `cd frontend && vue-tsc --noEmit`
-- `cd backend && ruff check . && mypy .`
 - `cd frontend && npm run lint`
+
+**Mobile (when mobile/ exists):**
+- `cd mobile && flutter test --coverage`
+- `cd mobile && flutter analyze && dart format --set-exit-if-changed .`
 
 ### Scope Rules
 

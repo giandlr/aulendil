@@ -7,7 +7,8 @@
 - **Frontend:** Nuxt 3 / Vue 3 (Composition API) + TypeScript + TailwindCSS
 - **State:** Pinia (actions only, no direct mutations from components)
 - **Forms:** vee-validate + zod
-- **Backend:** FastAPI (Python 3.9+, async)
+- **Backend:** FastAPI (Python 3.9+, async) — or ASP.NET Core 8 when `BACKEND_LANGUAGE=csharp`
+- **Mobile (optional):** Flutter (iOS + Android) — scaffolded into `mobile/` when selected
 - **Database:** Supabase (PostgreSQL, RLS enforced on all tables)
 - **Auth:** Supabase Auth (JWT, server-side verification)
 - **Storage:** Supabase Storage (bucket RLS, signed URLs < 1hr)
@@ -22,11 +23,15 @@
 - `frontend/services/` — ALL Supabase client calls — components never call Supabase directly
 - `frontend/types/` — Shared TypeScript types
 - `frontend/tests/` — Vitest + Playwright tests
-- `backend/routes/` — FastAPI routers (no business logic, < 20 lines per handler)
+- `backend/routes/` — FastAPI routers (no business logic, < 20 lines per handler) **[Python]**
 - `backend/services/` — Business logic layer
-- `backend/models/` — Pydantic request/response models
+- `backend/models/` — Pydantic request/response models **[Python]** / record DTOs **[C#]**
 - `backend/middleware/` — Auth, logging, error handling, CORS
-- `backend/tests/` — pytest suites
+- `backend/tests/` — pytest suites **[Python]** / xUnit **[C#]**
+- `backend/Routes/` — ASP.NET Core endpoint maps **[C# only]**
+- `backend/Data/` — EF Core DbContext + Migrations **[C# only]**
+- `mobile/lib/features/` — Flutter feature modules (data / domain / presentation) **[mobile only]**
+- `mobile/lib/core/` — Shared Flutter services, auth, router **[mobile only]**
 - `supabase/migrations/` — SQL migrations (`supabase db diff`)
 - `supabase/functions/` — Edge Functions (Deno)
 
@@ -34,23 +39,35 @@
 
 - **Bootstrap:** `bash scripts/bootstrap.sh`
 - **Dev frontend:** `cd frontend && npm run dev`
-- **Dev backend:** `cd backend && uvicorn main:app --reload`
-- **Test backend:** `cd backend && pytest --cov --cov-report=term-missing`
+- **Dev backend (Python):** `cd backend && uvicorn main:app --reload`
+- **Dev backend (C#):** `cd backend && dotnet run`
+- **Dev mobile:** `cd mobile && flutter run`
+- **Test backend (Python):** `cd backend && pytest --cov --cov-report=term-missing`
+- **Test backend (C#):** `cd backend && dotnet test --collect:"XPlat Code Coverage"`
 - **Test frontend:** `cd frontend && npm run test`
 - **Test e2e:** `cd frontend && npx playwright test`
-- **Lint backend:** `cd backend && ruff check . && mypy .`
+- **Test mobile:** `cd mobile && flutter test --coverage`
+- **Lint backend (Python):** `cd backend && ruff check . && mypy .`
+- **Lint backend (C#):** `cd backend && dotnet format --verify-no-changes`
 - **Lint frontend:** `cd frontend && npm run lint`
+- **Lint mobile:** `cd mobile && flutter analyze && dart format --set-exit-if-changed .`
 - **Type check frontend:** `cd frontend && vue-tsc --noEmit`
-- **Migrate:** `supabase db push`
-- **New migration:** `supabase db diff -f [migration_name]`
+- **Migrate (Supabase/Python):** `supabase db push`
+- **New migration (Supabase/Python):** `supabase db diff -f [migration_name]`
+- **Migrate (C#):** `cd backend && dotnet ef database update`
+- **New migration (C#):** `cd backend && dotnet ef migrations add [migration_name]`
 
 ## Discovery Mode
 
 **Trigger:** User says "build me...", "I want...", "create...", "make me..." AND project is greenfield (`[APP_NAME]` placeholder still present or no migrations exist).
 
-**Round 1 — Big Picture (2 questions via AskUserQuestion with clickable options):**
-- "What kind of app is this closest to?" (dashboard / submission tool / communication tool / scheduling tool / other)
+**Round 1 — Big Picture (4 questions via AskUserQuestion with clickable options):**
+- "What kind of app is this closest to?" (dashboard / submission tool / communication tool / scheduling tool / **mobile app** / other)
 - "Who will use this?" (just me / my team / team + external people)
+- "Do you need a mobile app (iOS/Android)?" (yes — mobile + web / web only / mobile only)
+- "Which backend language?" (Python — FastAPI / C# — ASP.NET Core)
+
+*Mobile answer writes `INCLUDE_MOBILE=true` to `.env`; backend answer writes `BACKEND_LANGUAGE=python` or `BACKEND_LANGUAGE=csharp` to `.env`. Bootstrap reads these on next run.*
 
 **Round 2 — Core Features (challenge round, 1-2 questions):**
 - Present feature options as multi-select based on Round 1
@@ -67,7 +84,7 @@
 
 Default mode. Write correct code automatically, narrate in plain English.
 
-**Auto-include:** Loading/error/empty states in Vue components, rate limiting + pagination + soft deletes + auth guards in Python routes, RLS + standard columns + FK indexes in migrations, tests alongside implementation. Narrate each in one sentence.
+**Auto-include:** Loading/error/empty states in Vue components, rate limiting + pagination + soft deletes + auth guards in Python/C# routes, RLS + standard columns + FK indexes in migrations, tests alongside implementation. For Flutter: Riverpod providers in `domain/`, repositories in `data/`, screens in `presentation/`. Narrate each in one sentence.
 
 **Language:** No tool names, no sub-agent mentions, no "Missing X" — say "I added...". Plain English, one sentence per fix.
 
@@ -75,7 +92,7 @@ Default mode. Write correct code automatically, narrate in plain English.
 
 **After features:** Run `supabase db push` if migration created. Fix env vars yourself. Start servers if needed. End with one plain-English line. Never give "Next steps" blocks.
 
-**Blocks:** Hardcoded secrets, service role key in frontend, direct Supabase calls outside services/.
+**Blocks:** Hardcoded secrets, service role key in frontend, direct Supabase calls outside services/ (web) or features/*/data/ (mobile), raw SQL string concatenation in C#, business logic in C# route handlers.
 
 ## Deploy Mode
 

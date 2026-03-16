@@ -171,6 +171,64 @@ When the app needs to serve both internal users and external parties (suppliers,
 
 **How it works:** The `api/index.py` adapter imports the existing FastAPI app from `backend/main.py`. Vercel auto-detects it as an ASGI app and serves it at `/api/*`. Local development with `uvicorn` is completely unchanged — the adapter is only used by Vercel's Python runtime.
 
+## C# Backend Architecture
+
+When `BACKEND_LANGUAGE=csharp`, the Python FastAPI backend is replaced with ASP.NET Core 8 Minimal APIs + EF Core + Npgsql. The rest of the architecture (Nuxt 3 frontend, Supabase, deploy targets) is unchanged.
+
+```
+┌─────────────────┐     ┌──────────────────────────┐     ┌─────────────────────┐
+│   Nuxt 3 App    │────▶│   ASP.NET Core 8 API      │────▶│     Supabase        │
+│   (Vercel/Azure)│     │   (Minimal APIs)          │     │  PostgreSQL + RLS   │
+│                 │     │                            │     └─────────────────────┘
+│  Supabase JS ──────────────────────────────────────────▶  (direct, same as Python)
+│  (anon key)     │     │  Routes/        (thin)    │
+│                 │     │  Services/      (logic)   │
+│                 │     │  Data/          (EF Core) │
+│                 │     │  Middleware/    (auth, ID) │
+└─────────────────┘     └──────────────────────────┘
+```
+
+**Same response envelope:** `{"status": "ok|error", "data": ..., "meta": {"request_id": "..."}}` — enforced via `ApiResponse<T>` record type in `Models/`.
+
+**Auth:** JWT Bearer verification against Supabase JWKS endpoint (Vercel/local) or `X-Forwarded-Email` from OAuth2 Proxy (Azure). Same dual-mode pattern as Python.
+
+**Migrations:** EF Core migrations live in `backend/Data/Migrations/` and are committed to git. `dotnet ef database update` applies them.
+
+**Deploy (Vercel):** `dotnet publish` → serverless function adapter. Deploy scripts detect `BACKEND_LANGUAGE=csharp` and build accordingly.
+
+**Deploy (Azure):** Multi-stage Dockerfile uses `mcr.microsoft.com/dotnet/aspnet:8.0` runtime image instead of Python.
+
+---
+
+## Mobile Architecture (Flutter)
+
+When `INCLUDE_MOBILE=true`, a `mobile/` Flutter directory is scaffolded alongside `frontend/`. Both connect to the **same Supabase instance and backend API** — no separate infrastructure is needed.
+
+```
+┌─────────────────┐   ┌─────────────────────┐
+│  Nuxt 3 Web     │   │  Flutter Mobile      │
+│  (frontend/)    │   │  (mobile/)           │
+│                 │   │                      │
+│  Supabase JS    │   │  supabase_flutter    │
+│  → anon key     │   │  → anon key          │
+│                 │   │  Riverpod state      │
+│  REST → API ────────────REST → same API    │
+└────────┬────────┘   └────────┬─────────────┘
+         │                     │
+         └──────────┬──────────┘
+                    ▼
+         ┌─────────────────────┐
+         │     Supabase        │
+         │  PostgreSQL + RLS   │
+         │  Auth (JWT)         │
+         │  Storage + Realtime │
+         └─────────────────────┘
+```
+
+See `docs/mobile-architecture.md` for detailed mobile layer documentation.
+
+---
+
 ## Azure Deployment Architecture
 
 When `DEPLOY_TARGET=azure`, the app runs as a Docker container on Azure Container Apps.

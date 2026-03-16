@@ -344,5 +344,54 @@ echo "Next: fill .env.azure.template, then run:"
 echo "  bash .claude/scripts/setup-azure-db.sh \$APP_SCHEMA"
 echo "  bash .claude/scripts/deploy-azure.sh staging"
 
+# ----------------------------------------------------------
+# 9. When BACKEND_LANGUAGE=csharp, swap Dockerfile for the .NET 8 variant.
+#    The dotnet runtime image is used; no Python layer needed.
+# ----------------------------------------------------------
+BACKEND_LANGUAGE="${BACKEND_LANGUAGE:-python}"
+if [[ -f ".env" ]]; then
+    _bl=$(grep -E "^BACKEND_LANGUAGE=" .env 2>/dev/null | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'")
+    [[ -n "$_bl" ]] && BACKEND_LANGUAGE="$_bl"
+fi
+
+if [[ "$BACKEND_LANGUAGE" == "csharp" ]] && [[ -f "Dockerfile" ]]; then
+    if grep -q "python:3.11-slim" Dockerfile 2>/dev/null; then
+        echo "  Rewriting Dockerfile for .NET 8 runtime..."
+        # Write to temp file first, then move into place
+        DOTNET_DOCKERFILE="Dockerfile.net8.tmp"
+        {
+            echo '# syntax=docker/dockerfile:1'
+            echo '# Multi-stage: Nuxt frontend build + dotnet publish + aspnet runtime'
+            echo ''
+            echo 'FROM node:20-alpine AS frontend-build'
+            echo 'WORKDIR /app/frontend'
+            echo 'COPY frontend/package*.json ./'
+            echo 'RUN npm ci --prefer-offline'
+            echo 'COPY frontend/ ./'
+            echo 'RUN npm run build'
+            echo ''
+            echo 'FROM mcr.microsoft.com/dotnet/sdk:8.0 AS backend-build'
+            echo 'WORKDIR /app/backend'
+            echo 'COPY backend/backend.csproj ./'
+            echo 'RUN dotnet restore'
+            echo 'COPY backend/ ./'
+            echo 'RUN dotnet publish -c Release -o /app/publish'
+            echo ''
+            echo 'FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS production'
+            echo 'WORKDIR /app'
+            echo 'RUN apt-get -q -y install curl && rm -rf /var/lib/apt/lists/*'
+            echo 'COPY --from=backend-build /app/publish ./backend/'
+            echo 'COPY --from=frontend-build /app/frontend/.output ./frontend/.output'
+            echo 'COPY docker-entrypoint.sh ./'
+            echo 'RUN chmod +x docker-entrypoint.sh'
+            echo 'EXPOSE 3000 8000'
+            echo 'ENTRYPOINT ["./docker-entrypoint.sh"]'
+        } > "$DOTNET_DOCKERFILE"
+        mv Dockerfile Dockerfile.python.bak
+        mv "$DOTNET_DOCKERFILE" Dockerfile
+        echo "  Dockerfile rewritten for .NET 8 (Python backup at Dockerfile.python.bak)"
+    fi
+fi
+
 echo "[$TIMESTAMP] scaffold-azure-configs: completed" >> "$AUDIT_LOG"
 exit 0

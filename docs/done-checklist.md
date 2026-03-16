@@ -149,19 +149,19 @@ Everything in Team, plus:
 - [ ] Dependency vulnerability scanning confirmed in pipeline results
 
 ### Code Quality
-- [ ] Zero lint errors — backend: `ruff check .` — frontend: `npm run lint`
-- [ ] Zero type errors — backend: `mypy .` — frontend: `vue-tsc --noEmit`
-- [ ] No bare `except:` clauses in Python
-- [ ] No `console.log` / `console.debug` left in frontend code
+- [ ] Zero lint errors — Python: `ruff check .` / C#: `dotnet format --verify-no-changes` / mobile: `flutter analyze` — frontend: `npm run lint`
+- [ ] Zero type errors — Python: `mypy .` / frontend: `vue-tsc --noEmit`
+- [ ] No bare `except:` clauses in Python; no empty `catch` blocks in C#
+- [ ] No `console.log` / `console.debug` left in frontend or mobile code
 - [ ] No inline styles in Vue components (except dynamic values)
-- [ ] Components under 200 lines, stores under 150 lines, route handlers under 20 lines
+- [ ] Components under 200 lines (web + mobile), stores under 150 lines, route handlers under 20 lines
 
 ### Security (Pipeline)
 - [ ] No hardcoded secrets, passwords, API keys, or tokens in any tracked file
 - [ ] No `SUPABASE_SERVICE_ROLE_KEY` in frontend code
-- [ ] No raw SQL strings — use supabase-py query builder
+- [ ] No raw SQL strings — Python: use supabase-py query builder / C#: use EF Core LINQ or `FromSqlRaw` with parameters
 - [ ] No `eval()` in JavaScript/TypeScript
-- [ ] All user input validated (Pydantic on backend, zod on frontend)
+- [ ] All user input validated (Pydantic / Pydantic models on Python backend, record DTOs on C# backend, zod on frontend)
 - [ ] RLS policies defined for every new database table
 - [ ] Gitleaks scan passes with zero findings
 

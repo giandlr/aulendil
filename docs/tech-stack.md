@@ -33,12 +33,41 @@ FORM_VALIDATION: vee-validate + zod
 
 ## Backend
 
+# Set BACKEND_LANGUAGE=python (default) or BACKEND_LANGUAGE=csharp in .env
+BACKEND_LANGUAGE: python  # or "csharp"
+
+### Python (default)
 FRAMEWORK: fastapi
 LANGUAGE: python
 API_STYLE: REST
 ASYNC: true
 AUTH: supabase-auth
 FILE_UPLOADS: supabase-storage
+
+### C# (when BACKEND_LANGUAGE=csharp)
+FRAMEWORK: aspnetcore-minimal-apis
+LANGUAGE: csharp
+DOTNET_VERSION: 8
+ORM: entity-framework-core-8
+DB_PROVIDER: npgsql
+AUTH: jwt-bearer (Supabase RS256 or Azure Entra ID)
+API_STYLE: REST
+RESPONSE_ENVELOPE: ApiResponse<T> record type (same structure as Python stack)
+
+---
+
+## Mobile (optional)
+
+# Set INCLUDE_MOBILE=true in .env to scaffold mobile/
+INCLUDE_MOBILE: false  # or "true"
+
+STATE: riverpod-2 (code-gen @riverpod)
+HTTP: dio
+SUPABASE_SDK: supabase_flutter
+NAVIGATION: go_router
+TESTING: flutter_test + mocktail + integration_test
+LINT: flutter analyze + dart format
+PLATFORMS: iOS + Android
 
 ---
 
@@ -55,12 +84,24 @@ RLS: true  # Row Level Security enforced on all tables
 
 ## Testing
 
-### Backend
+### Backend (Python)
 UNIT: pytest
 COVERAGE: pytest-cov
 SECURITY: bandit
 TYPE_CHECK: mypy
 LINT: ruff
+
+### Backend (C#)
+UNIT: xunit
+COVERAGE: coverlet + ReportGenerator
+MOCK: Moq
+INTEGRATION: WebApplicationFactory
+LINT: dotnet format + Roslyn analyzers
+
+### Mobile
+UNIT: flutter_test
+MOCK: mocktail
+INTEGRATION: integration_test
 
 ### Frontend
 UNIT: vitest
@@ -88,10 +129,22 @@ SECURITY: bandit
 MIN_COVERAGE_LINES: 80
 MIN_COVERAGE_BRANCHES: 70
 
+### C#
+LINTER: Roslyn analyzers
+FORMATTER: dotnet format
+MIN_COVERAGE_LINES: 80
+MIN_COVERAGE_BRANCHES: 70
+
 ### TypeScript / Vue
 LINTER: eslint
 FORMATTER: prettier
 TYPE_CHECKER: vue-tsc
+MIN_COVERAGE_LINES: 80
+MIN_COVERAGE_BRANCHES: 70
+
+### Flutter / Dart
+LINTER: flutter analyze
+FORMATTER: dart format
 MIN_COVERAGE_LINES: 80
 MIN_COVERAGE_BRANCHES: 70
 
@@ -161,14 +214,22 @@ BOOTSTRAP_DESCRIPTION: |
 ## Run Commands
 
 DEV_FRONTEND: cd frontend && npm run dev
-DEV_BACKEND: cd backend && uvicorn main:app --reload
-TEST_BACKEND: cd backend && pytest --cov --cov-report=term-missing
+DEV_BACKEND_PYTHON: cd backend && uvicorn main:app --reload
+DEV_BACKEND_CSHARP: cd backend && dotnet run
+DEV_MOBILE: cd mobile && flutter run
+TEST_BACKEND_PYTHON: cd backend && pytest --cov --cov-report=term-missing
+TEST_BACKEND_CSHARP: cd backend && dotnet test --collect:"XPlat Code Coverage"
 TEST_FRONTEND: cd frontend && npm run test
 TEST_E2E: cd frontend && npx playwright test
-LINT_BACKEND: cd backend && ruff check . && mypy .
+TEST_MOBILE: cd mobile && flutter test --coverage
+LINT_BACKEND_PYTHON: cd backend && ruff check . && mypy .
+LINT_BACKEND_CSHARP: cd backend && dotnet format --verify-no-changes
 LINT_FRONTEND: cd frontend && npm run lint
-MIGRATE: supabase db push
-MIGRATE_NEW: supabase db diff -f [migration_name]
+LINT_MOBILE: cd mobile && flutter analyze && dart format --set-exit-if-changed .
+MIGRATE_SUPABASE: supabase db push
+MIGRATE_NEW_SUPABASE: supabase db diff -f [migration_name]
+MIGRATE_CSHARP: cd backend && dotnet ef database update
+MIGRATE_NEW_CSHARP: cd backend && dotnet ef migrations add [migration_name]
 TYPE_CHECK_FRONTEND: cd frontend && vue-tsc --noEmit
 
 ---

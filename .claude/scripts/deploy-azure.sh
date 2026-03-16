@@ -41,17 +41,46 @@ IMAGE_TAG="${ACR_LOGIN_SERVER}/${APP_DASH}:${ENVIRONMENT}-$(date +%Y%m%d%H%M%S)"
 IMAGE_LATEST="${ACR_LOGIN_SERVER}/${APP_DASH}:latest"
 
 # ----------------------------------------------------------
-# Step 1: Build Docker image
+# Step 1: Pre-build — dotnet publish (C# only, before Docker build)
 # ----------------------------------------------------------
+BACKEND_LANGUAGE="${BACKEND_LANGUAGE:-python}"
+if [[ -f ".env" ]]; then
+    _bl=$(grep -E "^BACKEND_LANGUAGE=" .env 2>/dev/null | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'")
+    [[ -n "$_bl" ]] && BACKEND_LANGUAGE="$_bl"
+fi
+if [[ -f ".env.azure" ]]; then
+    _bl2=$(grep -E "^BACKEND_LANGUAGE=" .env.azure 2>/dev/null | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'")
+    [[ -n "$_bl2" ]] && BACKEND_LANGUAGE="$_bl2"
+fi
+
+echo "  Backend language: $BACKEND_LANGUAGE"
+
+if [[ "$BACKEND_LANGUAGE" == "csharp" ]]; then
+    if ! command -v dotnet &>/dev/null; then
+        echo "ERROR: dotnet CLI not found. Install .NET 8 SDK." >&2
+        exit 1
+    fi
+    echo "Running dotnet publish..."
+    if ! dotnet publish backend/backend.csproj -c Release -o .claude/tmp/dotnet-publish 2>&1 | tee .claude/tmp/dotnet-build.log; then
+        echo "ERROR: dotnet publish failed. See .claude/tmp/dotnet-build.log" >&2
+        exit 1
+    fi
+    echo "  dotnet publish succeeded"
+fi
+
+# ----------------------------------------------------------
+# Step 2: Build Docker image
+# ----------------------------------------------------------
+echo ""
 echo "Building Docker image..."
 if ! docker build -t "$IMAGE_TAG" -t "$IMAGE_LATEST" . 2>&1 | tee .claude/tmp/docker-build.log; then
     echo "ERROR: Docker build failed. See .claude/tmp/docker-build.log" >&2
     exit 1
 fi
-echo "  + Image built: $IMAGE_TAG"
+echo "  Image built: $IMAGE_TAG"
 
 # ----------------------------------------------------------
-# Step 2: Push to Azure Container Registry
+# Step 3: Push to Azure Container Registry
 # ----------------------------------------------------------
 echo ""
 echo "Pushing to ACR..."

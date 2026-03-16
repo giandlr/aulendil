@@ -140,6 +140,24 @@ fi
 echo ""
 
 # ============================================================
+# Read stack selection from .env (set by Claude during Discovery)
+# ============================================================
+
+BACKEND_LANGUAGE="python"
+INCLUDE_MOBILE="false"
+
+if [ -f ".env" ]; then
+    _bl=$(grep -E "^BACKEND_LANGUAGE=" .env 2>/dev/null | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'")
+    [ -n "$_bl" ] && BACKEND_LANGUAGE="$_bl"
+    _im=$(grep -E "^INCLUDE_MOBILE=" .env 2>/dev/null | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'")
+    [ -n "$_im" ] && INCLUDE_MOBILE="$_im"
+fi
+
+echo "  Backend:  $BACKEND_LANGUAGE"
+echo "  Mobile:   $INCLUDE_MOBILE"
+echo ""
+
+# ============================================================
 # Phase 1: Scaffold
 # ============================================================
 
@@ -269,6 +287,32 @@ PYEOF
     echo "  Created backend/ with main.py, requirements, and directory structure"
 else
     echo "  backend/ already exists — skipping scaffold"
+fi
+
+# C# backend scaffold (only when BACKEND_LANGUAGE=csharp and backend/ not yet present)
+if [ "$BACKEND_LANGUAGE" = "csharp" ] && [ ! -f "backend/backend.csproj" ]; then
+    echo "  Switching to C# backend scaffold..."
+    if [ -f ".claude/scripts/scaffold-csharp-backend.sh" ]; then
+        bash .claude/scripts/scaffold-csharp-backend.sh
+    else
+        echo "  WARNING: scaffold-csharp-backend.sh not found — skipping C# scaffold"
+    fi
+fi
+
+# Mobile — Flutter (only when INCLUDE_MOBILE=true and mobile/ not yet present)
+if [ "$INCLUDE_MOBILE" = "true" ] && [ ! -d "mobile" ]; then
+    echo "  Scaffolding Flutter mobile app..."
+    if command -v flutter &>/dev/null; then
+        flutter create --org com.example --project-name mobile mobile 2>&1 | tail -5
+        mkdir -p mobile/lib/{features,core/{services,auth,router},shared}
+        mkdir -p mobile/integration_test
+        echo "  Created mobile/ (Flutter project)"
+        INSTALLED+=("Flutter mobile scaffold")
+    else
+        echo "  WARNING: flutter not found — install Flutter SDK from https://flutter.dev/docs/get-started/install"
+        WARNINGS+=("Flutter not installed — mobile/ not scaffolded. Install from https://flutter.dev/docs/get-started/install")
+        INCLUDE_MOBILE="false"
+    fi
 fi
 
 # Supabase directory

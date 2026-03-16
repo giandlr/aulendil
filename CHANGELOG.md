@@ -14,6 +14,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 <!-- UNRELEASED_INSERT_POINT -->
 
+## [v1.4.0] — 2026-03-16
+
+### Added
+- **Flutter mobile option:** Discovery Mode now asks "Do you need a mobile app?" — selecting yes scaffolds a `mobile/` Flutter directory (iOS + Android) alongside the existing web frontend, sharing the same Supabase backend and API
+- **Flutter stack:** Riverpod 2 (code-gen `@riverpod`) for state, `supabase_flutter` for auth/data, `go_router` for navigation, `flutter_test` + `mocktail` for testing — all enforced by `.claude/rules/mobile.md`
+- **C# backend option:** Discovery Mode now asks "Which backend language?" — selecting C# scaffolds `backend/` as an ASP.NET Core 8 Minimal APIs project with EF Core 8 + Npgsql; works with both Vercel and Azure deploy targets
+- **C# stack:** `Microsoft.AspNetCore.Authentication.JwtBearer` for Supabase JWT verification, `ApiResponse<T>` record type enforcing identical response envelope as Python stack, xUnit + Moq + `WebApplicationFactory` for testing — all enforced by `.claude/rules/csharp-backend.md`
+- **C# scaffold script:** `.claude/scripts/scaffold-csharp-backend.sh` — creates full `backend/` directory structure via `dotnet new` and installs required NuGet packages
+- **C# migration runner:** `.claude/scripts/setup-db-csharp.sh` — wraps `dotnet ef database update` and `dotnet ef migrations add`
+- **C# Azure Dockerfile:** `scaffold-azure-configs.sh` now detects `BACKEND_LANGUAGE=csharp` and rewrites the Dockerfile to use `mcr.microsoft.com/dotnet/aspnet:8.0` runtime instead of Python
+- **C# Azure deploy:** `deploy-azure.sh` runs `dotnet publish` before Docker build when `BACKEND_LANGUAGE=csharp`
+- **Mobile rules:** `.claude/rules/mobile.md` — blocks Supabase calls outside `features/*/data/` and `setState` in Riverpod-driven screens; warns on screens over 200 lines
+- **C# rules:** `.claude/rules/csharp-backend.md` — blocks raw SQL string concatenation, hardcoded secrets, and business logic in route handlers; warns on missing auth and xUnit tests without assertions
+- **Mobile architecture doc:** `docs/mobile-architecture.md` — full Flutter architecture reference with auth flow, Realtime pattern, deployment (App Store / Google Play), and test strategy
+- **BACKEND_LANGUAGE env var:** Written to `.env` at scaffold time; bootstrap reads it to branch between Python and C# scaffold paths
+- **INCLUDE_MOBILE env var:** Written to `.env` at scaffold time; bootstrap reads it to scaffold the Flutter `mobile/` directory
+- **Parallel validation:** `.claude/rules/agents.md` extended with C# validation commands (`dotnet test`, `dotnet format --verify-no-changes`) and mobile commands (`flutter test --coverage`, `flutter analyze`)
+- **Manual updates:** 4 new slides (Flutter Mobile, Mobile Architecture, C# Backend Option, Choosing Your Stack); version 1.7, 30 slides total
+
+### Changed
+- **CLAUDE.md:** Discovery Mode Round 1 gains two new questions (mobile app? / backend language?); directory structure section adds mobile and C#-specific directories; commands section adds mobile and C# commands
+- **docs/tech-stack.md:** Added `## Mobile` and `## Backend (C#)` sections; run commands, test commands, and code quality sections updated for all three stacks
+- **docs/architecture.md:** Added C# Backend Architecture section (with system diagram) and Mobile Architecture section (with diagram) before the Azure deployment section
+- **scripts/bootstrap.sh:** Reads `BACKEND_LANGUAGE` and `INCLUDE_MOBILE` from `.env`; branches to C# scaffold and Flutter scaffold when selected; Python path unchanged
+
 ## [v1.3.0] — 2026-03-14
 
 ### Added
