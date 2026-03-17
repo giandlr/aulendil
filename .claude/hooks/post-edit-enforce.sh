@@ -34,6 +34,24 @@ SESSION_DIR=".claude/session"
 mkdir -p "$SESSION_DIR" 2>/dev/null || true
 echo "$FILE_PATH" >> "$SESSION_DIR/file-log.txt"
 
+# Cache file content once for all checks
+FILE_EXT="${FILE_PATH##*.}"
+
+# Early exit for files that don't need checking
+case "$FILE_EXT" in
+    md|txt|json|yaml|yml|toml|css|scss|html|svg|png|jpg|gif|ico|woff|woff2|ttf|eot)
+        exit 0
+        ;;
+esac
+
+FILE_CONTENT=$(cat "$FILE_PATH" 2>/dev/null || echo "")
+IS_FRONTEND=false
+IS_BACKEND=false
+IS_MIGRATION=false
+[[ "$FILE_PATH" == *frontend/* ]] && IS_FRONTEND=true
+[[ "$FILE_PATH" == *backend/* ]] && IS_BACKEND=true
+[[ "$FILE_PATH" == *supabase/migrations/*.sql ]] && IS_MIGRATION=true
+
 MODE=$(get_mode)
 BLOCKED=false
 BLOCK_MESSAGES=()
@@ -60,9 +78,8 @@ if command -v gitleaks &>/dev/null; then
 fi
 
 # SUPABASE_SERVICE_ROLE_KEY in frontend files
-if echo "$FILE_PATH" | grep -qiE 'frontend/'; then
-    FILE_CONTENT=$(cat "$FILE_PATH" 2>/dev/null || echo "")
-    if echo "$FILE_CONTENT" | grep -qiE 'SUPABASE_SERVICE_ROLE_KEY|SERVICE_ROLE_KEY'; then
+if $IS_FRONTEND; then
+    if [[ "$FILE_CONTENT" =~ (SUPABASE_SERVICE_ROLE_KEY|SERVICE_ROLE_KEY) ]]; then
         BLOCKED=true
         BLOCK_MESSAGES+=("This includes a master database key visible to app users. I'll switch to the safe public key.")
         echo "[$TIMESTAMP] BLOCKED: Service role key in frontend file $FILE_PATH" >> "$AUDIT_LOG"
@@ -70,9 +87,8 @@ if echo "$FILE_PATH" | grep -qiE 'frontend/'; then
 fi
 
 # Direct Supabase client calls outside services/
-if echo "$FILE_PATH" | grep -qiE 'frontend/.*\.(ts|tsx|js|jsx|vue)$'; then
-    if ! echo "$FILE_PATH" | grep -qE 'services/'; then
-        FILE_CONTENT=$(cat "$FILE_PATH" 2>/dev/null || echo "")
+if $IS_FRONTEND && [[ "$FILE_EXT" =~ ^(ts|tsx|js|jsx|vue)$ ]]; then
+    if [[ "$FILE_PATH" != *services/* ]]; then
         if echo "$FILE_CONTENT" | grep -qE 'supabase\.(from|rpc|auth|storage|channel|removeChannel)\s*\('; then
             BLOCKED=true
             BLOCK_MESSAGES+=("This file calls the Supabase client directly. All data access must go through frontend/services/.")
@@ -86,21 +102,20 @@ fi
 # ============================================================
 if [[ "$MODE" == "build" ]]; then
 
-    if echo "$FILE_PATH" | grep -qE '\.(ts|tsx|js|jsx|vue)$'; then
+    if [[ "$FILE_EXT" =~ ^(ts|tsx|js|jsx|vue)$ ]]; then
         # Console.log
         if grep -qE '\bconsole\.(log|debug)\b' "$FILE_PATH" 2>/dev/null; then
             echo "[$TIMESTAMP] AUDIT (build): console.log found in $FILE_PATH" >> "$AUDIT_LOG"
         fi
 
         # Oversized components
-        if echo "$FILE_PATH" | grep -qE '\.vue$'; then
+        if [[ "$FILE_EXT" == "vue" ]]; then
             LINE_COUNT=$(file_line_count "$FILE_PATH")
             if [[ "$LINE_COUNT" -gt 200 ]]; then
                 echo "[$TIMESTAMP] AUDIT (build): Oversized component $FILE_PATH ($LINE_COUNT lines)" >> "$AUDIT_LOG"
             fi
 
-            FILE_CONTENT=$(cat "$FILE_PATH" 2>/dev/null || echo "")
-
+        
             # Missing loading state
             if echo "$FILE_CONTENT" | grep -qE 'await\s|\.then\s*\(|useFetch|useAsyncData|useLazyFetch'; then
                 if ! echo "$FILE_CONTENT" | grep -qiE 'loading|isLoading|pending|isFetching|skeleton|spinner'; then
@@ -124,7 +139,7 @@ if [[ "$MODE" == "build" ]]; then
         fi
     fi
 
-    if echo "$FILE_PATH" | grep -qE '\.py$'; then
+    if [[ "$FILE_EXT" == "py" ]]; then
         # Bare except clauses
         if grep -qE '^\s*except\s*:' "$FILE_PATH" 2>/dev/null; then
             echo "[$TIMESTAMP] AUDIT (build): Bare except clause in $FILE_PATH" >> "$AUDIT_LOG"
@@ -132,8 +147,7 @@ if [[ "$MODE" == "build" ]]; then
 
         # Route files without rate limiting
         if echo "$FILE_PATH" | grep -qiE '(routes/|router|endpoint).*\.py$'; then
-            FILE_CONTENT=$(cat "$FILE_PATH" 2>/dev/null || echo "")
-            if echo "$FILE_CONTENT" | grep -qE '@(app|router)\.(get|post|put|patch|delete)\s*\('; then
+                    if echo "$FILE_CONTENT" | grep -qE '@(app|router)\.(get|post|put|patch|delete)\s*\('; then
                 if ! echo "$FILE_CONTENT" | grep -qiE '@limiter\.limit|RateLimitMiddleware|rate_limit|slowapi|Depends\(.*rate'; then
                     echo "[$TIMESTAMP] AUDIT (build): Missing rate limiting in $FILE_PATH" >> "$AUDIT_LOG"
                 fi
@@ -154,9 +168,8 @@ if [[ "$MODE" == "build" ]]; then
     fi
 
     # Migration warnings
-    if echo "$FILE_PATH" | grep -qiE 'supabase/migrations/.*\.sql$'; then
-        FILE_CONTENT=$(cat "$FILE_PATH" 2>/dev/null || echo "")
-
+    if $IS_MIGRATION; then
+    
         # Missing RLS
         if echo "$FILE_CONTENT" | grep -qiE 'CREATE\s+TABLE'; then
             if ! echo "$FILE_CONTENT" | grep -qiE 'ALTER\s+TABLE.*ENABLE\s+ROW\s+LEVEL\s+SECURITY|CREATE\s+POLICY|ROW\s+LEVEL\s+SECURITY'; then
@@ -178,7 +191,7 @@ if [[ "$MODE" == "build" ]]; then
     fi
 
     # SELECT * without limit (frontend/backend)
-    if echo "$FILE_PATH" | grep -qE '\.(ts|tsx|js|jsx|vue|py)$'; then
+    if [[ "$FILE_EXT" =~ ^(ts|tsx|js|jsx|vue|py)$ ]]; then
         if grep -qE '\.select\(\s*["\x27]\*["\x27]\s*\)' "$FILE_PATH" 2>/dev/null; then
             if ! grep -qE '\.limit\s*\(' "$FILE_PATH" 2>/dev/null; then
                 echo "[$TIMESTAMP] AUDIT (build): SELECT * without .limit() in $FILE_PATH" >> "$AUDIT_LOG"
@@ -194,7 +207,7 @@ elif [[ "$MODE" == "deploy" ]]; then
     # --------------------------------------------------------
     # TypeScript / Vue / JavaScript files
     # --------------------------------------------------------
-    if echo "$FILE_PATH" | grep -qE '\.(ts|tsx|js|jsx|vue)$'; then
+    if [[ "$FILE_EXT" =~ ^(ts|tsx|js|jsx|vue)$ ]]; then
 
         # ESLint
         if command -v npx &>/dev/null && [[ -f "frontend/node_modules/.bin/eslint" || -f "node_modules/.bin/eslint" ]]; then
@@ -209,7 +222,7 @@ elif [[ "$MODE" == "deploy" ]]; then
         fi
 
         # Console.log — block in deploy (exclude test files)
-        if ! echo "$FILE_PATH" | grep -qE '(\.test\.|\.spec\.|__tests__/)'; then
+        if [[ "$FILE_PATH" != *.test.* && "$FILE_PATH" != *.spec.* && "$FILE_PATH" != *__tests__/* ]]; then
             if grep -qE '\bconsole\.(log|debug)\b' "$FILE_PATH" 2>/dev/null; then
                 BLOCKED=true
                 BLOCK_MESSAGES+=("Console.log statements must be removed before deploying.")
@@ -219,7 +232,7 @@ elif [[ "$MODE" == "deploy" ]]; then
 
         # Run corresponding test file
         TEST_FILE=""
-        if echo "$FILE_PATH" | grep -qE 'frontend/'; then
+        if $IS_FRONTEND; then
             BASE_NAME=$(basename "$FILE_PATH" | sed 's/\.\(ts\|tsx\|js\|jsx\|vue\)$//')
             TEST_FILE=$(find frontend/tests -name "${BASE_NAME}.test.*" -o -name "${BASE_NAME}.spec.*" 2>/dev/null | head -1)
             if [[ -n "$TEST_FILE" ]] && command -v npx &>/dev/null; then
@@ -235,9 +248,8 @@ elif [[ "$MODE" == "deploy" ]]; then
         fi
 
         # Vue component enterprise checks
-        if echo "$FILE_PATH" | grep -qE '\.vue$'; then
-            FILE_CONTENT=$(cat "$FILE_PATH" 2>/dev/null || echo "")
-
+        if [[ "$FILE_EXT" == "vue" ]]; then
+        
             # Missing loading state
             if echo "$FILE_CONTENT" | grep -qE 'await\s|\.then\s*\(|useFetch|useAsyncData|useLazyFetch'; then
                 if ! echo "$FILE_CONTENT" | grep -qiE 'loading|isLoading|pending|isFetching|skeleton|spinner'; then
@@ -284,7 +296,7 @@ elif [[ "$MODE" == "deploy" ]]; then
     # --------------------------------------------------------
     # Python files
     # --------------------------------------------------------
-    if echo "$FILE_PATH" | grep -qE '\.py$'; then
+    if [[ "$FILE_EXT" == "py" ]]; then
 
         # Ruff linter
         if command -v ruff &>/dev/null; then
@@ -331,7 +343,7 @@ elif [[ "$MODE" == "deploy" ]]; then
         fi
 
         # Run corresponding test file
-        if echo "$FILE_PATH" | grep -qE 'backend/'; then
+        if $IS_BACKEND; then
             BASE_NAME=$(basename "$FILE_PATH" .py)
             TEST_FILE=$(find backend/tests -name "test_${BASE_NAME}.py" 2>/dev/null | head -1)
             if [[ -n "$TEST_FILE" ]] && command -v pytest &>/dev/null; then
@@ -355,8 +367,7 @@ elif [[ "$MODE" == "deploy" ]]; then
 
         # Route file enterprise checks
         if echo "$FILE_PATH" | grep -qiE '(routes/|router|endpoint).*\.py$'; then
-            FILE_CONTENT=$(cat "$FILE_PATH" 2>/dev/null || echo "")
-
+        
             # Missing rate limiting
             if echo "$FILE_CONTENT" | grep -qE '@(app|router)\.(get|post|put|patch|delete)\s*\('; then
                 if ! echo "$FILE_CONTENT" | grep -qiE '@limiter\.limit|RateLimitMiddleware|rate_limit|slowapi|Depends\(.*rate'; then
@@ -406,8 +417,7 @@ elif [[ "$MODE" == "deploy" ]]; then
 
         # Auth-related file checks
         if echo "$FILE_PATH" | grep -qiE '(auth|login|session|middleware).*\.py$'; then
-            FILE_CONTENT=$(cat "$FILE_PATH" 2>/dev/null || echo "")
-
+        
             # Missing auth guard
             if echo "$FILE_CONTENT" | grep -qE '@(app|router)\.(get|post|put|patch|delete)\s*\('; then
                 if ! echo "$FILE_PATH" | grep -qiE 'login|register|signup|invite|health'; then
@@ -447,11 +457,10 @@ elif [[ "$MODE" == "deploy" ]]; then
     if [[ "$DEPLOY_TARGET_VAL" == "azure" ]]; then
 
         # Block migrations that reference schemas other than APP_SCHEMA
-        if echo "$FILE_PATH" | grep -qiE 'supabase/migrations/.*\.sql$'; then
+        if $IS_MIGRATION; then
             AZURE_APP_SCHEMA=$(cat .env 2>/dev/null | grep '^APP_SCHEMA=' | cut -d= -f2 | tr -d '[:space:]' || echo "")
             if [[ -n "$AZURE_APP_SCHEMA" ]]; then
-                FILE_CONTENT=$(cat "$FILE_PATH" 2>/dev/null || echo "")
-                if echo "$FILE_CONTENT" | grep -qiE 'SET\s+search_path\s+TO\s+'; then
+                            if echo "$FILE_CONTENT" | grep -qiE 'SET\s+search_path\s+TO\s+'; then
                     OTHER=$(echo "$FILE_CONTENT" | grep -iE 'SET\s+search_path\s+TO\s+' \
                         | grep -v "$AZURE_APP_SCHEMA" | grep -v "public" || true)
                     if [[ -n "$OTHER" ]]; then
@@ -464,9 +473,8 @@ elif [[ "$MODE" == "deploy" ]]; then
         fi
 
         # Block direct Google Auth API calls (must go through OAuth2 Proxy)
-        if echo "$FILE_PATH" | grep -qE '\.(ts|tsx|js|jsx|vue|py)$'; then
-            FILE_CONTENT=$(cat "$FILE_PATH" 2>/dev/null || echo "")
-            if echo "$FILE_CONTENT" | grep -qiE 'accounts\.google\.com|oauth2\.googleapis\.com|googleapis\.com/auth'; then
+        if [[ "$FILE_EXT" =~ ^(ts|tsx|js|jsx|vue|py)$ ]]; then
+            if [[ "$FILE_CONTENT" =~ (accounts\.google\.com|oauth2\.googleapis\.com|googleapis\.com/auth) ]]; then
                 BLOCKED=true
                 BLOCK_MESSAGES+=("Direct Google Auth API calls are not allowed in Azure mode. Authentication goes through the OAuth2 Proxy — the app receives the user email via a request header.")
                 echo "[$TIMESTAMP] BLOCKED (azure): Direct Google Auth API call in $FILE_PATH" >> "$AUDIT_LOG"
@@ -474,9 +482,8 @@ elif [[ "$MODE" == "deploy" ]]; then
         fi
 
         # Block Blob Storage access without APP_BLOB_CONTAINER scope
-        if echo "$FILE_PATH" | grep -qE '\.(py)$'; then
-            FILE_CONTENT=$(cat "$FILE_PATH" 2>/dev/null || echo "")
-            if echo "$FILE_CONTENT" | grep -qiE 'BlobServiceClient|ContainerClient|BlobClient'; then
+        if [[ "$FILE_EXT" == "py" ]]; then
+                    if echo "$FILE_CONTENT" | grep -qiE 'BlobServiceClient|ContainerClient|BlobClient'; then
                 if ! echo "$FILE_CONTENT" | grep -qiE 'BLOB_CONTAINER|APP_BLOB_CONTAINER|os\.environ|os\.getenv'; then
                     BLOCKED=true
                     BLOCK_MESSAGES+=("Azure Blob Storage access must use the app-scoped container from the BLOB_CONTAINER environment variable — never a hardcoded container name.")
@@ -489,9 +496,8 @@ elif [[ "$MODE" == "deploy" ]]; then
 
     # Migration file checks
     # --------------------------------------------------------
-    if echo "$FILE_PATH" | grep -qiE 'supabase/migrations/.*\.sql$'; then
-        FILE_CONTENT=$(cat "$FILE_PATH" 2>/dev/null || echo "")
-
+    if $IS_MIGRATION; then
+    
         # ALTER TABLE on existing table
         if echo "$FILE_CONTENT" | grep -qiE '^\s*ALTER\s+TABLE\b'; then
             TABLE_NAME=$(echo "$FILE_CONTENT" | grep -ioE 'ALTER\s+TABLE\s+\S+' | head -1 | awk '{print $3}')

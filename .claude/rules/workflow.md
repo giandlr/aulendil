@@ -57,25 +57,9 @@
 
 **Trigger:** User says "build me...", "I want...", "create...", "make me..." AND project is greenfield (`[APP_NAME]` placeholder still present in CLAUDE.md or no migrations exist).
 
-**Round 1 — Big Picture (2 questions via AskUserQuestion with clickable options):**
-- "What kind of app is this closest to?" (dashboard / form tool / communication tool / scheduling tool / other)
-- "Who will use this?" (just me / my team / team + external people)
+Full Discovery flow (3 rounds of questions): read `.claude/refs/discovery-mode.md` before starting Discovery.
 
-**Round 2 — Core Features + Baseline (3–4 questions):**
-- Present feature options as multi-select based on Round 1
-- Challenge: "Is there anything I'm missing? Any approval workflows or external system connections?"
-- "Do you need a mobile app?" (yes — mobile + web / web only)
-- "Which backend?" (Python — faster for small teams / C# — better for enterprise scale)
-- **Production baseline checklist** (see `production-baseline.md`): Based on the audience answer from Round 1, present the applicable baseline features as a yes/no checklist via AskUserQuestion. Frame as: "Here are a few things users almost always expect — which should I include?" For team/external apps this must include: forgot password, user management page, role assignment, user deactivation. For external apps also include: email verification, invite flow.
-
-*Mobile answer writes `INCLUDE_MOBILE=true` to `.env`; backend answer writes `BACKEND_LANGUAGE=python` or `BACKEND_LANGUAGE=csharp` to `.env`. Bootstrap reads these on next run.*
-
-**Round 3 — Data & Access (1 question):**
-- "Should everyone see everything, or only their own stuff?" (everyone / own only / role-based)
-
-**Skip condition:** If initial request has 3+ features AND mentions audience, still run the baseline checklist — never skip it for team/external apps.
-
-**Output:** Write `.claude/brief.md` with: app name, description, users, features (including confirmed baseline features), data model sketch, access rules, out-of-scope. Update `[APP_NAME]` in CLAUDE.md, write `build` to `.claude/mode`, narrate plan, ask "Does this look right?"
+**Key rules:** Round 1 asks 2 questions (app type + audience). Round 2 covers features, mobile, backend language, and the production baseline checklist. Round 3 covers data access. Never skip the baseline checklist for team/external apps. Output: `.claude/brief.md`.
 
 ## Build Mode
 
@@ -121,52 +105,18 @@ Default mode. Write correct code automatically, narrate in plain English.
 
 ## Deploy Mode
 
-Trigger: "ship it", "deploy", "go live". Write `deploy` to `.claude/mode`.
+**Trigger:** "ship it", "deploy", "go live". Full deploy flow: read `.claude/refs/deploy-mode.md`.
 
-1. **If `DEPLOY_TARGET` is not set in `.env`:** Ask (AskUserQuestion) "Where do you want to put the app?" with options: "On the company server" / "In the cloud". Set `DEPLOY_TARGET=azure` or `DEPLOY_TARGET=vercel` in `.env` — this setting sticks until changed.
-2. Ask up to 2 more questions via AskUserQuestion with clickable options to determine gate level (mvp/team/production).
-3. Run `bash .claude/scripts/run-pipeline.sh <gate>` (reads `DEPLOY_TARGET` from env).
-4. Write `build` back to `.claude/mode` when done.
+**Key rules:**
+1. If `DEPLOY_TARGET` not set: ask "company server or cloud?" — set in `.env`
+2. Ask gate level (mvp/team/production)
+3. Run `bash .claude/scripts/run-pipeline.sh <gate>`
+4. Write `build` back to `.claude/mode` when done
 
-**Language rule:** Say "company server" when referring to Azure. Say "cloud" when referring to Vercel. Never say the technical names in conversation. Say "switch to the company server" / "switch to the cloud" for target changes.
+**Language:** Say "company server" for Azure, "cloud" for Vercel. Never use technical names.
 
-**Switch anytime:** If the manager says "switch to the company server" or "switch to the cloud", update `DEPLOY_TARGET` in `.env` and confirm in plain English.
-
-## Cloud Deploy Mode
-
-Trigger: "deploy to cloud", "make this live", "put it online", "go live" (when context implies cloud deployment, not local).
-
-**Skip condition:** If `DEPLOY_TARGET` is already set → skip target discovery, go straight to the appropriate path.
-
-### Path A — Cloud (Vercel)
-
-**Skip condition:** If `vercel.json` exists AND `deploy-state.json` shows previous cloud deploy → skip discovery, go straight to deploy.
-
-**Discovery (AskUserQuestion):**
-- Round 1: "Do you have a Vercel account?" (Yes / No / IT handles this) + "Do you have a Supabase Cloud project?" (Yes / No / Not sure)
-- Round 2: "Where should this go?" (Staging / Production)
-
-**Three paths:**
-1. **Self-service** (has accounts): `scaffold-cloud-configs.sh` → `run-pipeline.sh` → `deploy-cloud.sh`
-2. **IT handoff** (IT handles infra): `scaffold-cloud-configs.sh` → `generate-handoff-doc.sh` → narrate "I created a setup guide for your IT team"
-3. **Guided setup** (unsure): `generate-handoff-doc.sh` → `scaffold-cloud-configs.sh` → narrate what they need
-
-**Architecture:** Frontend (Nuxt 3 SSR) + Backend (FastAPI serverless) both deploy to Vercel. Database on Supabase Cloud.
-
-### Path B — Company Server (Azure)
-
-**Skip condition:** If `azure-container-app.yml` exists AND `deploy-state.json` shows previous azure deploy → skip discovery, go straight to deploy.
-
-**Discovery (AskUserQuestion):**
-- Round 1: "Does your IT team have Azure set up?" (Yes / No / Not sure) + "Do you have a Google Workspace account for company login?" (Yes / No)
-- Round 2: "Where should this go?" (Staging / Production)
-
-**Three paths:**
-1. **Self-service** (IT has Azure): `scaffold-azure-configs.sh` → `run-pipeline.sh` (DEPLOY_TARGET=azure) → `deploy-azure.sh`
-2. **IT handoff** (IT handles infra): `scaffold-azure-configs.sh` → `generate-azure-handoff-doc.sh` → narrate "I created a setup guide for your IT team"
-3. **Guided setup** (unsure): `generate-azure-handoff-doc.sh` → `scaffold-azure-configs.sh` → narrate what they need
-
-**Architecture:** App runs as a Docker container on Azure Container Apps. Google SSO is handled automatically — employees log in with their company email. Database isolated per app via `APP_SCHEMA`.
+**Cloud (Vercel):** Frontend + Backend on Vercel, DB on Supabase Cloud.
+**Company Server (Azure):** Docker on Azure Container Apps, Google SSO via OAuth2 Proxy, schema isolation per app.
 
 ## Architectural Rules
 
@@ -180,39 +130,9 @@ See `.claude/rules/agents.md` for full guidance. Never mention agents to the use
 
 ## Session Lifecycle
 
-On session start, check `.claude/session/latest.json`:
-- If `status: "in_progress"`, read the checkpoint and offer to resume: "It looks like we were working on [task]. Want to pick up where we left off?"
-- If `status: "completed"` but `git status` shows uncommitted changes, offer: "We finished [task] but the changes aren't committed yet. Want me to review and commit?"
-- If `latest.json` is missing but `.claude/session/file-log.txt` is non-empty, infer crash — read file log + `git status` and offer recovery.
+On session start, check `.claude/session/latest.json` for resume or crash recovery. Full spec: `.claude/refs/session-lifecycle.md`.
 
-Progress tracking: Write `.claude/session/plan.md` with checkboxes for multi-step tasks. On resume, check file existence and box state.
-
-**Session checkpoint schema** (`.claude/session/latest.json`):
-```json
-{
-  "status": "in_progress | completed | failed",
-  "task": "Short description of current task",
-  "checkpoint": "Last completed step or milestone",
-  "files_modified": ["path/to/file1.ts", "path/to/file2.py"],
-  "timestamp": "2026-03-17T14:30:00Z"
-}
-```
-
-**Error recovery:** Pipeline and deploy scripts write `.claude/last-error.json` on failure:
-```json
-{
-  "timestamp": "2026-03-17T14:30:00Z",
-  "stage": "deploy-azure",
-  "error": "Docker push failed",
-  "log_file": ".claude/tmp/docker-build.log",
-  "recovery": "Check ACR credentials and retry"
-}
-```
-On session start, if this file exists, read it and offer recovery: *"It looks like the last deployment failed at [stage]. Want me to retry?"* Delete the file after successful recovery.
-
-**First-run detection:** On first session in a greenfield project (no `.claude/brief.md`, `[APP_NAME]` placeholder still in CLAUDE.md), start with:
-> "Welcome! I'll help you build your app. First, I have a few quick questions about what you need."
-> If `manual/guide.html` exists, add: "For a visual overview, open manual/guide.html in your browser."
+**Quick rules:** `status: "in_progress"` → offer resume. Missing file + non-empty `file-log.txt` → crash recovery. `status: "completed"` + uncommitted changes → offer commit. Greenfield project → welcome message.
 
 ## Definition of Done
 

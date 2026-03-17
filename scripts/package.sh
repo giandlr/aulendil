@@ -49,7 +49,7 @@ mkdir -p "$STAGE/manual"
 cp manual/guide.html "$STAGE/manual/"
 
 # .claude/ (full tree)
-for subdir in agents hooks hooks/lib rules reviewers scripts; do
+for subdir in agents hooks hooks/lib rules reviewers scripts refs; do
     mkdir -p "$STAGE/.claude/$subdir"
 done
 cp .claude/settings.json "$STAGE/.claude/"
@@ -59,7 +59,7 @@ cp .claude/deploy-state.json "$STAGE/.claude/"
 cp .claude/dev-log.md "$STAGE/.claude/" 2>/dev/null || true
 
 # Copy subdirectories
-for subdir in agents hooks hooks/lib rules reviewers scripts; do
+for subdir in agents hooks hooks/lib rules reviewers scripts refs; do
     if ls ".claude/$subdir/"* &>/dev/null 2>&1; then
         cp ".claude/$subdir/"* "$STAGE/.claude/$subdir/" 2>/dev/null || true
     fi
