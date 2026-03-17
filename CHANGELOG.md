@@ -14,6 +14,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 <!-- UNRELEASED_INSERT_POINT -->
 
+## [v1.7.0] — 2026-03-17
+
+### Added
+- **`check-gate.sh`:** New script for quick gate readiness checks before deploying — tells you exactly what's missing for your chosen gate level without running the full pipeline.
+- **`preflight-check.sh`:** Validates bootstrap prerequisites (Node, Python, Docker, etc.) before running bootstrap, with clear actionable error messages.
+- **Bootstrap checkpoint/resume:** Bootstrap tracks completed phases in `.claude/bootstrap-state`; on re-run it skips completed phases and picks up where it left off. Use `--fresh` to start over.
+- **Docker-optional bootstrap:** Phase 3 now detects Docker availability and continues without Supabase if Docker isn't running. The app scaffolds fully and a placeholder `.env` is written.
+- **Tier 1 enterprise feature check stage:** `run-pipeline.sh` now runs a `tier1-enterprise` stage at Production gate that checks for RBAC migration, GET /health endpoint, and RLS on all migration tables.
+- **Five new C# backend rule sections:** Rate limiting, Azure RLS, JWT verification detail, idempotency, and service role key handling added to `.claude/rules/csharp-backend.md`.
+- **Debug mode:** Both `run-pipeline.sh` and `bootstrap.sh` now activate `set -x` when `AULENDIL_DEBUG=1` is set.
+
+### Changed
+- **RBAC check now blocks deploys:** Was warn-only after the gate decision; now fails the pipeline at Team and Production gates if RBAC files are missing. Also detects C# RBAC middleware (`backend/Middleware/RbacMiddleware.cs`).
+- **Schema isolation check now fails production gate:** Previously always exited 0 (warn only); now exits 1 at Production gate when schema issues are found.
+- **Pipeline wait loop is data-driven:** Replaced fixed `for stage in security smoke unit...` loop with `SPAWNED_STAGES` array — only stages that were actually launched are waited on.
+- **Opus reviewer hardened:** Payload build failure now short-circuits Opus with `PAYLOAD_ERROR` status; gate parsing uses structured fallback to `CHANGES_REQUIRED` on unexpected output.
+- **Azure deploy hardened:** Readiness polling replaces `sleep 15`; migration check blocks production deploys without DB config; deploy-state.json validated after write; service role key leak check before Vercel deploy.
+- **`setup-azure-db.sh` SQL parameterized:** Switched to quoted heredoc + sed substitution — no arbitrary bash expansion in SQL strings.
+- **`deploy-azure.sh` env parsing safe:** Auth tokens suppressed from ACR login logs; env file parsed without `eval`.
+- **Deploy gates cleaned up:** Removed phantom stages (`docker-test`, `azure-deploy`, `smoke-test-production`) that were listed in gate requires but never implemented in the pipeline script.
+- **Discovery Mode simplified:** Round 1 reduced to 2 questions; baseline checklist is tiered by audience (just-me / team / external) rather than a single flat list.
+- **Clarification rules tightened:** Added explicit skip conditions for trivially obvious tasks; added contextual validation narration.
+- **`production-baseline.md`:** Baseline checklist and audience table brought into sync (account lockout alignment); added Tier/audience precedence explanation.
+- **`enterprise-features.md`:** Replaced all `integration-runner` references; added C# sections for rate limiting, Azure RLS, JWT, idempotency, service role key.
+
+### Fixed
+- **Baseline checklist divergence:** Account lockout was listed as Required in the table but Offer in the checklist — both now consistent.
+- **Perf URL hardcoded:** Lighthouse and curl now use `FRONTEND_URL` env var (defaults to `http://localhost:3000`) instead of the hardcoded value.
+- **Schema grep false positives:** Word boundary added to `search_path` grep to prevent partial schema name matches.
+- **Mode file collision:** `run-pipeline.sh` now writes `deploy:$$` (with PID) to `.claude/mode` to prevent concurrent pipeline runs from clobbering each other.
+
 ## [v1.6.0] — 2026-03-17
 
 ### Added

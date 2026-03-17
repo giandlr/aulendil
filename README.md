@@ -328,6 +328,7 @@ Open `manual/guide.html` in any browser for a visual walkthrough of the entire s
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
+- **v1.7** — Pipeline gate integrity (RBAC/schema checks now block deploys), security hardening, bootstrap checkpoint/resume, Docker-optional bootstrap, `preflight-check.sh`, `check-gate.sh`, debug mode, 5 new C# rule sections
 - **v1.6** — Production baseline (forgot password, user management, RBAC), clarify-before-building, full test suite at every gate level (MVP/Team/Production), Opus review now at Team+, 6 bootstrap fixes (Tailwind, DevTools, env validation, app seed, SETUP.md, dev auth warning)
 - **v1.5** — Framework updater (`update.sh`), version tracking, background server logs, mandatory post-feature validation, `CLAUDE.md` reduced to project identity only (framework rules now in `.claude/rules/workflow.md` — updated automatically)
 - **v1.4** — Flutter mobile (iOS + Android) option, C# / ASP.NET Core 8 backend option, updated manual (32 slides)
