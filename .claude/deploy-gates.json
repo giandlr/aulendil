@@ -3,9 +3,9 @@
     "label": "Just me testing",
     "description": "Quick check that the app works and has no security issues",
     "common": {
-      "requires": ["security-scan", "app-starts", "happy-path-works"],
-      "skip": ["unit-tests", "integration-tests", "ui-tests", "performance", "opus-review", "rbac-check"],
-      "coverage": null
+      "requires": ["security-scan", "app-starts", "happy-path-works", "unit-tests", "integration-tests", "ui-tests"],
+      "skip": [],
+      "coverage": { "line": 60, "branch": 50 }
     },
     "vercel": {
       "enabled": false
@@ -20,8 +20,8 @@
     "label": "Sharing with colleagues",
     "description": "Tests, UI tests, RBAC, and authentication verified",
     "common": {
-      "requires": ["security-scan", "unit-tests", "ui-tests", "basic-error-handling", "auth-works", "rbac-check"],
-      "skip": ["performance", "opus-review"],
+      "requires": ["security-scan", "app-starts", "happy-path-works", "unit-tests", "integration-tests", "ui-tests", "opus-review", "rbac-check"],
+      "skip": [],
       "coverage": { "line": 60, "branch": 50 }
     },
     "vercel": {

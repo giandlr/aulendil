@@ -1142,9 +1142,9 @@
         </div>
 
         <div class="card c-red mt-16" style="text-align: center;">
-          <span class="card-label">Layer 5 &mdash; Independent Review (Production only)</span>
+          <span class="card-label">Layer 5 &mdash; Independent Review (Team &amp; Production)</span>
           <h3>Opus Code Review</h3>
-          <p>At the production gate level, a separate senior AI (Claude Opus) reviews the code with <strong>zero knowledge</strong> of the development session. Like an independent auditor checking every change before it goes live.</p>
+          <p>At Team and Production gate levels, a separate senior AI (Claude Opus) reviews the code with <strong>zero knowledge</strong> of the development session. Like an independent auditor checking every change before it goes live.</p>
         </div>
       </div>
     </div>
@@ -1159,35 +1159,33 @@
           <div class="card c-green" style="padding: 24px;">
             <span class="card-label" style="color: #1a8a00;">MVP</span>
             <h3>"Just me testing"</h3>
-            <p class="mb-8">A quick check to make sure nothing is broken or insecure. Takes about a minute.</p>
+            <p class="mb-8">Security check, smoke test, and full test suite. Takes 2&ndash;3 minutes.</p>
             <ul class="bullet-list mt-8">
               <li>Security scan &mdash; no passwords or secrets in code</li>
               <li>App starts without errors</li>
               <li>The main feature works end-to-end</li>
+              <li>Unit, integration, and e2e tests pass</li>
             </ul>
             <div class="sm mt-16" style="font-style: italic;">Say: "Let me test this" or "Quick check"</div>
           </div>
           <div class="card c-blue" style="padding: 24px;">
             <span class="card-label">Team</span>
             <h3>"Sharing with colleagues"</h3>
-            <p class="mb-8">Validates that the app is reliable enough for other people to use. Takes a few minutes.</p>
+            <p class="mb-8">Everything in MVP plus RBAC check and an independent code review. Takes 5&ndash;7 minutes.</p>
             <ul class="bullet-list mt-8">
               <li>Everything in MVP, plus:</li>
-              <li>All tests pass with reasonable coverage</li>
-              <li>Errors are handled gracefully (no blank screens)</li>
-              <li>Login and permissions work correctly</li>
+              <li>Roles and permissions correctly configured</li>
+              <li>Independent AI code review (Opus)</li>
             </ul>
             <div class="sm mt-16" style="font-style: italic;">Say: "Share with my team" or "Ship it to the team"</div>
           </div>
           <div class="card c-purple" style="padding: 24px;">
             <span class="card-label">Production</span>
             <h3>"External users"</h3>
-            <p class="mb-8">Full enterprise validation. Performance testing, independent code review, everything. Takes 5&ndash;10 minutes.</p>
+            <p class="mb-8">Full enterprise validation including performance testing. Takes 8&ndash;12 minutes.</p>
             <ul class="bullet-list mt-8">
               <li>Everything in Team, plus:</li>
-              <li>Full test suite with high coverage</li>
               <li>Performance validated &mdash; fast response times</li>
-              <li>Independent AI code review (Opus)</li>
               <li>All enterprise features present</li>
             </ul>
             <div class="sm mt-16" style="font-style: italic;">Say: "Ship to production" or "Ready for external users"</div>
@@ -1226,7 +1224,7 @@
             <span class="step-num" style="background: var(--green);">3</span>
             <div>
               <h3>The right checks run automatically</h3>
-              <p>MVP: security + smoke test. Team: + unit tests + auth check. Production: + full tests + performance + Opus code review.</p>
+              <p>MVP: security + smoke + all tests. Team: + RBAC + Opus review. Production: + performance + enterprise features.</p>
             </div>
           </div>
           <div class="card" style="padding: 16px; display: flex; align-items: center; gap: 16px; background: var(--bg-lavender);">
@@ -1251,19 +1249,19 @@
             <span class="layer-icon">&#x1f9ea;</span>
             <h3>Unit Tests</h3>
             <p>Does each individual piece of code work correctly on its own?</p>
-            <div class="sm mt-8"><span class="badge badge-blue" style="margin:0;">Team+</span></div>
+            <div class="sm mt-8"><span class="badge badge-green" style="margin:0;">MVP+</span></div>
           </div>
           <div class="layer-card" style="border-top: 3px solid var(--blue);">
             <span class="layer-icon">&#x1f5a5;</span>
             <h3>UI Tests</h3>
             <p>Do user-facing screens and flows work in a real browser?</p>
-            <div class="sm mt-8"><span class="badge badge-purple" style="margin:0;">Production</span></div>
+            <div class="sm mt-8"><span class="badge badge-green" style="margin:0;">MVP+</span></div>
           </div>
           <div class="layer-card" style="border-top: 3px solid var(--green);">
             <span class="layer-icon">&#x1f517;</span>
             <h3>Integration Tests</h3>
             <p>Do the API endpoints and database work together correctly?</p>
-            <div class="sm mt-8"><span class="badge badge-purple" style="margin:0;">Production</span></div>
+            <div class="sm mt-8"><span class="badge badge-green" style="margin:0;">MVP+</span></div>
           </div>
           <div class="layer-card" style="border-top: 3px solid var(--orange);">
             <span class="layer-icon">&#x26a1;</span>
@@ -1274,11 +1272,11 @@
         </div>
 
         <div class="connect-visual">
-          <div class="connect-node" style="background: var(--bg-green); color: #1a8a00;">MVP: Security + Smoke</div>
+          <div class="connect-node" style="background: var(--bg-green); color: #1a8a00;">MVP: Security + Smoke + All Tests</div>
           <span class="connect-arrow">&rarr;</span>
-          <div class="connect-node" style="background: rgba(22,121,250,0.08); color: var(--blue);">Team: + Unit Tests</div>
+          <div class="connect-node" style="background: rgba(22,121,250,0.08); color: var(--blue);">Team: + RBAC + Opus Review</div>
           <span class="connect-arrow">&rarr;</span>
-          <div class="connect-node" style="background: var(--bg-lavender); color: var(--purple);">Production: + All Tests + Opus</div>
+          <div class="connect-node" style="background: var(--bg-lavender); color: var(--purple);">Production: + Performance + Enterprise</div>
         </div>
 
         <p class="sm mt-8" style="text-align: center;">Each level includes everything from the level before it. You choose the right level when you deploy.</p>
@@ -1289,7 +1287,7 @@
     <div class="slide" data-slide="15">
       <div class="slide-scroll">
         <h2>The Opus Review &mdash; Your Independent Auditor</h2>
-        <p class="subtitle" style="margin-bottom:16px;">At the production level, after all tests pass, a separate senior AI reviews the code from scratch with zero bias.</p>
+        <p class="subtitle" style="margin-bottom:16px;">At Team and Production levels, after all tests pass, a separate senior AI reviews the code from scratch with zero bias.</p>
 
         <div class="grid-3 mb-16">
           <div class="card c-green" style="text-align: center;">
@@ -1312,7 +1310,7 @@
         <div class="big-quote">
           Opus has <strong>zero knowledge</strong> of the development process. It only sees the code changes and test results.
           This is intentional &mdash; it eliminates bias and catches issues the builder might miss. Like an external auditor
-          reviewing financial statements. <strong>This review only runs at the production gate level.</strong>
+          reviewing financial statements. <strong>This review runs at Team and Production gate levels.</strong>
         </div>
       </div>
     </div>
@@ -1635,11 +1633,11 @@
           <tbody>
             <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);"><strong>Build Mode</strong></td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Default mode. Free-flowing creative work. Only security blocks.</td></tr>
             <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);"><strong>Deploy Mode</strong></td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Activates when you say "ship it." Runs quality checks at your chosen level.</td></tr>
-            <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);"><span class="badge badge-green" style="margin:0;">MVP</span></td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Quick security check + smoke test. Just for you to verify.</td></tr>
-            <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);"><span class="badge badge-blue" style="margin:0;">Team</span></td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Tests pass, auth works, errors handled. Ready to share with colleagues.</td></tr>
-            <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);"><span class="badge badge-purple" style="margin:0;">Production</span></td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Full tests, performance, Opus review. Ready for external users.</td></tr>
+            <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);"><span class="badge badge-green" style="margin:0;">MVP</span></td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Security + smoke + unit + integration + e2e tests. Just for you to verify.</td></tr>
+            <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);"><span class="badge badge-blue" style="margin:0;">Team</span></td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Everything in MVP + RBAC check + Opus code review. Ready to share with colleagues.</td></tr>
+            <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);"><span class="badge badge-purple" style="margin:0;">Production</span></td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Everything in Team + performance tests + all enterprise features. Ready for external users.</td></tr>
             <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);"><strong>Blocked</strong></td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">A safety check caught a problem. Claude fixes it automatically.</td></tr>
-            <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);"><strong>Opus Review</strong></td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Independent AI code reviewer (production level only)</td></tr>
+            <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);"><strong>Opus Review</strong></td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Independent AI code reviewer (Team and Production levels)</td></tr>
             <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);"><span class="badge badge-green" style="margin:0;">Approved</span></td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Code is clean, all features present, ready for production</td></tr>
             <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);"><span class="badge badge-orange" style="margin:0;">With Conditions</span></td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Code works, but some pre-production features aren't built yet</td></tr>
             <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);"><span class="badge badge-red" style="margin:0;">Changes Required</span></td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Problems found. Claude will fix them.</td></tr>

@@ -154,11 +154,6 @@ if stage_required "ui-tests"; then
     echo "Running UI tests..."
     (
         if command -v npx &>/dev/null && [[ -f "frontend/playwright.config.ts" || -f "frontend/playwright.config.js" ]]; then
-            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 2>/dev/null || echo "000")
-            if [[ "$HTTP_STATUS" == "000" || "$HTTP_STATUS" == "0" ]]; then
-                echo '{"stage": "ui-tests", "overall_status": "SKIP", "reason": "App not running"}' > .claude/tmp/ui-results.json
-                exit 0
-            fi
             cd frontend && npx playwright test --reporter=json \
                 2>&1 | tee ../.claude/tmp/playwright-output.txt
             if [[ ${PIPESTATUS[0]} -eq 0 ]]; then

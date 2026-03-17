@@ -284,6 +284,39 @@ async def client():
         yield ac
 PYEOF
 
+    # Integration tests scaffold
+    mkdir -p backend/tests/integration
+    touch backend/tests/integration/__init__.py
+
+    cat > backend/tests/integration/conftest.py << 'PYEOF'
+import pytest
+from httpx import AsyncClient, ASGITransport
+from main import app
+
+
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+
+@pytest.fixture
+async def client():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
+PYEOF
+
+    cat > backend/tests/integration/test_api_health.py << 'PYEOF'
+import pytest
+
+
+@pytest.mark.anyio
+async def test_health(client):
+    response = await client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+PYEOF
+
     echo "  Created backend/ with main.py, requirements, and directory structure"
 else
     echo "  backend/ already exists — skipping scaffold"
@@ -461,6 +494,16 @@ SEEDEOF
     echo "  Added admin role assignment to supabase/seed.sql"
 fi
 
+# Create app-specific seed placeholder
+if [ ! -f "supabase/seed-app.sql" ]; then
+    cat > supabase/seed-app.sql << 'SEEDEOF'
+-- App-specific seed data
+-- Claude will populate this during the Build phase.
+-- Run after migrations: supabase db query < supabase/seed-app.sql
+SEEDEOF
+    echo "  Created supabase/seed-app.sql (placeholder for app seed data)"
+fi
+
 echo ""
 
 # ============================================================
@@ -507,12 +550,13 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
-  devtools: { enabled: true },
+  devtools: { enabled: false },
 
   modules: [
     "@pinia/nuxt",
   ],
 
+  css: ["~/assets/css/main.css"],
   vite: {
     plugins: [tailwindcss()],
   },
@@ -658,7 +702,9 @@ export default defineNuxtPlugin(async () => {
       email: 'dev@aulendil.local',
       password: 'devpassword123',
     })
-    if (!error) {
+    if (error) {
+      console.warn('[Aulendil] Dev auto-login failed — is Supabase running? Start with: supabase start')
+    } else {
       console.log('[Aulendil] Auto-signed in as dev@aulendil.local')
     }
   }
@@ -1085,6 +1131,38 @@ PYEOF
 echo "  Created backend/middleware/rbac.py"
 
 echo "  Backend configured."
+
+cat > SETUP.md << 'SETUPEOF'
+# Setup Guide
+
+Run these steps in order the first time, or after a fresh clone.
+
+## 1. Start Supabase (requires Docker)
+supabase start
+
+## 2. Run migrations
+supabase db push
+
+## 3. Seed app data (if supabase/seed-app.sql has content)
+supabase db query < supabase/seed-app.sql
+
+## 4. Start backend
+cd backend && source .venv/bin/activate && uvicorn main:app --reload --port 8000
+
+## 5. Start frontend
+cd frontend && npm run dev
+
+## Services
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- API Docs: http://localhost:8000/docs
+- Supabase Studio: http://127.0.0.1:54323
+
+## Dev login
+Email: dev@aulendil.local
+Password: devpassword123
+SETUPEOF
+echo "  Created SETUP.md"
 echo ""
 
 # ============================================================
@@ -1167,6 +1245,12 @@ ENVEOF
             " 2>/dev/null || echo "  (RBAC assignment deferred — apply migration first)"
         fi
 
+        # Run app seed if it has content beyond the placeholder comment
+        if [ -f "supabase/seed-app.sql" ] && grep -qv "^--" supabase/seed-app.sql 2>/dev/null; then
+            echo "  Running app seed data..."
+            supabase db query < supabase/seed-app.sql 2>/dev/null || true
+        fi
+
         INSTALLED+=("Supabase local (running)")
     else
         WARNINGS+=("Failed to start Supabase local — check Docker is running")
@@ -1194,6 +1278,18 @@ NUXT_PUBLIC_SUPABASE_ANON_KEY=
 NUXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ENVEOF
 fi
+
+# Validate .env files don't contain instruction text instead of real values
+for env_file in ".env.local" "frontend/.env"; do
+    if [ -f "$env_file" ]; then
+        if grep -qE '^[A-Z_]+=.{61,}' "$env_file" 2>/dev/null && \
+           grep -E '^[A-Z_]+=.{61,}' "$env_file" | grep -qE '= *[A-Za-z].+ .+'; then
+            echo "WARNING: $env_file may contain instructions instead of real values."
+            echo "Open the file and make sure each line looks like KEY=value, not KEY=some explanation text."
+            WARNINGS+=("$env_file may contain instructions instead of real values — check each KEY=value line")
+        fi
+    fi
+done
 
 echo ""
 
@@ -1273,6 +1369,28 @@ else
     else
         WARNINGS+=("Cannot auto-install k6. Install: https://k6.io/docs/get-started/installation/")
     fi
+fi
+
+# k6 load test scaffold
+if [[ ! -f "frontend/tests/k6/load-test.js" ]]; then
+    mkdir -p frontend/tests/k6
+    cat > frontend/tests/k6/load-test.js << 'K6EOF'
+import http from "k6/http";
+import { check } from "k6";
+
+export const options = {
+  vus: 1,
+  iterations: 10,
+};
+
+export default function () {
+  const res = http.get("http://localhost:8000/health");
+  check(res, {
+    "status is 200": (r) => r.status === 200,
+  });
+}
+K6EOF
+    echo "  Created frontend/tests/k6/load-test.js"
 fi
 
 # Make all scripts executable

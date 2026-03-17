@@ -57,9 +57,9 @@ A development user (`dev@aulendil.local` / `devpassword123`) is seeded automatic
 
 | Level | Who It's For | What's Checked |
 |-------|-------------|----------------|
-| **MVP** | Just you testing | Security scan, app starts, happy path works |
-| **Team** | Sharing with colleagues | + Unit tests pass, auth works, errors handled |
-| **Production** | External users | + Full test suite, performance, independent Opus code review |
+| **MVP** | Just you testing | Security scan, smoke test, unit tests, integration tests, e2e tests (60/50 coverage) |
+| **Team** | Sharing with colleagues | Everything in MVP + RBAC check + Opus code review |
+| **Production** | External users | Everything in Team + performance tests + all enterprise features |
 
 Start at MVP and graduate to Production as your project matures.
 
@@ -135,7 +135,7 @@ All technology decisions are defined in `docs/tech-stack.md`.
 | Phase | What It Does |
 |-------|-------------|
 | **1. Scaffold** | Creates Nuxt 3 frontend, FastAPI backend, and Supabase directory structure |
-| **2. Configure** | Installs all dependencies, creates config files, sets up dev plugins |
+| **2. Configure** | Installs all dependencies, creates config files, sets up dev plugins, writes `SETUP.md` |
 | **3. Supabase** | Initializes and starts local Supabase, extracts credentials, seeds a dev user |
 | **4. Start** | Launches backend and frontend dev servers in the background — output goes to `logs/backend.log` and `logs/frontend.log`, terminal stays usable |
 | **5. Dev Tools** | Installs gitleaks, k6, and sets file permissions |
@@ -188,7 +188,7 @@ Parallel AI workers for tests, security scans, and performance checks. The pipel
 ### Layer 4 — Pipeline
 Gate-level validation when you deploy. The pipeline accepts a gate level (`mvp`, `team`, `production`) and runs only the stages required for that level.
 
-### Layer 5 — Opus Review (Production only)
+### Layer 5 — Opus Review (Team and Production)
 An independent AI reviewer (Claude Opus) examines the code with zero knowledge of the development session. Like an external auditor. Runs with a 5-minute timeout.
 
 ---
@@ -288,7 +288,7 @@ Bootstrap automatically installs Playwright (chromium-only) and creates starter 
 - **`tests/e2e/smoke.spec.ts`** — Page load + accessibility checks (axe-core)
 - **`tests/e2e/forms.spec.ts`** — Form validation patterns
 
-Tests run as part of the pipeline at Team+ gate levels. Claude adapts the starter patterns to your actual app during build.
+Tests run as part of the pipeline at all gate levels (MVP and above). Claude adapts the starter patterns to your actual app during build.
 
 | Command | What It Does |
 |---------|-------------|
@@ -325,6 +325,7 @@ Open `manual/guide.html` in any browser for a visual walkthrough of the entire s
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
+- **v1.6** — Production baseline (forgot password, user management, RBAC), clarify-before-building, full test suite at every gate level (MVP/Team/Production), Opus review now at Team+, 6 bootstrap fixes (Tailwind, DevTools, env validation, app seed, SETUP.md, dev auth warning)
 - **v1.5** — Framework updater (`update.sh`), version tracking, background server logs, mandatory post-feature validation, `CLAUDE.md` reduced to project identity only (framework rules now in `.claude/rules/workflow.md` — updated automatically)
 - **v1.4** — Flutter mobile (iOS + Android) option, C# / ASP.NET Core 8 backend option, updated manual (32 slides)
 - **v1.3** — Azure deployment target (company server), dual-mode auth (Google SSO via OAuth2 Proxy), per-app schema isolation, 4 new Azure scripts, updated manual (26 slides)

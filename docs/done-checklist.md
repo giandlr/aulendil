@@ -6,7 +6,7 @@ Choose the checklist that matches your deploy gate level.
 
 ## MVP Gate — "Just me testing"
 
-Quick validation that the app works and is secure.
+Quick validation that the app works, is secure, and tests pass.
 
 - [ ] App starts without errors
 - [ ] Core feature works end-to-end (happy path)
@@ -15,6 +15,10 @@ Quick validation that the app works and is secure.
 - [ ] No direct Supabase calls outside services/
 - [ ] Basic navigation works
 - [ ] Data saves and loads correctly
+- [ ] Unit tests pass (backend + frontend)
+- [ ] Integration tests pass (`backend/tests/integration/`)
+- [ ] E2e tests pass (Playwright)
+- [ ] Line coverage ≥ 60%, branch coverage ≥ 50%
 
 ---
 
@@ -24,8 +28,9 @@ Everything in MVP, plus:
 
 ### Tests
 - [ ] Unit tests pass (backend + frontend)
-- [ ] Line coverage ≥ 60%
-- [ ] Branch coverage ≥ 50%
+- [ ] Integration tests pass
+- [ ] E2e tests pass (Playwright)
+- [ ] Line coverage ≥ 60%, branch coverage ≥ 50%
 - [ ] Every new file has a test file
 
 ### Security
@@ -42,6 +47,9 @@ Everything in MVP, plus:
 - [ ] Forms validate input before submission
 - [ ] Works on mobile screens
 - [ ] No TODO/FIXME markers left in changed files
+
+### Final Gate
+- [ ] Opus code review: **APPROVED** (pipeline runs Opus at Team gate)
 
 ---
 

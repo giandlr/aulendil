@@ -21,10 +21,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Discovery Mode baseline checklist:** Round 2 now presents applicable baseline features as a yes/no checklist via AskUserQuestion, framed as "things users almost always expect." For team/external apps this always includes forgot password, user management, role assignment, and user deactivation. Never skipped even when Discovery fast-paths.
 - **Clarify before building:** Build Mode now requires 1–2 focused clarification questions via AskUserQuestion before starting any new feature. Questions cover: who can perform the action, edge case behavior, and UI preference. Only skipped for trivially obvious tasks.
 - **Post-first-feature baseline check:** After the first substantive feature in a new project, Build Mode checks whether baseline features have been built and flags any gaps in plain English, offering to add them before continuing.
+- **Integration test scaffold:** Bootstrap now creates `backend/tests/integration/` with a `conftest.py` (FastAPI TestClient fixture) and `test_api_health.py` (GET /health smoke test) so integration tests always exist and the pipeline stage never SKIPs on a fresh project.
+- **k6 load test scaffold:** Bootstrap now creates `frontend/tests/k6/load-test.js` (1 VU, 10 iterations against `/health`) so the performance stage always has a script to run.
+- **App seed placeholder:** Bootstrap Phase 1 creates `supabase/seed-app.sql` with a placeholder comment. Phase 3 runs it automatically if it contains any non-comment content — Claude populates it during Build.
+- **SETUP.md:** Bootstrap Phase 2 now writes a `SETUP.md` to the project root with the full first-run sequence (start Supabase, push migrations, seed, start backend, start frontend) and all service URLs and the dev login. Useful on re-clone or after a break.
 
 ### Changed
+- **Pipeline always runs full test suite:** MVP and Team gates no longer skip unit tests, integration tests, or UI tests. All gates run security scan + smoke + unit + integration + UI tests. Performance remains Production-only. Opus review runs at Team and Production. Gate levels still control coverage thresholds and deployment targets.
+- **MVP gate coverage:** Line ≥ 60%, branch ≥ 50% (was null).
+- **Opus review now runs at Team gate:** Was Production-only; now Team and Production both require Opus to pass.
+- **UI tests no longer skip when app not pre-running:** The HTTP 000 pre-check was removed from `run-pipeline.sh`; Playwright's `webServer` config starts the app automatically.
+- **Dead gate config removed:** `basic-error-handling` and `auth-works` entries removed from Team gate `requires` — these had no implementation in `run-pipeline.sh` and produced no output.
 - **Discovery Mode Round 2:** Added production baseline checklist step; skip condition for fast-path no longer bypasses the baseline check for team/external apps.
 - **Build Mode:** Added "Clarify before building" and "Production baseline" rules above the existing auto-include and validation rules.
+
+### Fixed
+- **Tailwind CSS never loaded:** `css: ["~/assets/css/main.css"]` was missing from the `nuxt.config.ts` heredoc in bootstrap. TailwindCSS v4 requires the explicit CSS entry; styles were silently dropped on every new project.
+- **Nuxt DevTools blocked screenshots and production use:** `devtools: { enabled: true }` changed to `false`; DevTools injected a UI overlay that broke screenshot tests and caused confusion in production-like environments.
+- **`.env` files could contain instruction text instead of real values:** Bootstrap now validates both `.env.local` and `frontend/.env` after writing them and warns (with a `WARNINGS[]` entry) if any value looks like a sentence rather than a scalar value.
+- **Dev auth plugin swallowed Supabase failures silently:** The `if (!error)` branch only logged success; failures produced no output. Now logs `console.warn` with "is Supabase running? Start with: supabase start" when sign-in fails.
 
 ## [v1.5.0] — 2026-03-16
 
