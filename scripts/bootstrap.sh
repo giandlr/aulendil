@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+[[ "${AULENDIL_DEBUG:-}" == "1" ]] && set -x
 
 # ─────────────────────────────────────────────────────────────
 # Bootstrap — From empty directory to running app
@@ -41,6 +42,46 @@ echo ""
 
 INSTALLED=()
 WARNINGS=()
+
+# Run pre-flight checks
+if [[ -f ".claude/scripts/preflight-check.sh" ]]; then
+    if ! bash .claude/scripts/preflight-check.sh; then
+        echo ""
+        echo "Fix the issues above and re-run: bash scripts/bootstrap.sh"
+        exit 1
+    fi
+    echo ""
+fi
+
+# Bootstrap state tracking for resume support
+BOOTSTRAP_STATE=".claude/bootstrap-state"
+mkdir -p .claude 2>/dev/null || true
+
+phase_done() {
+    grep -q "^$1=done$" "$BOOTSTRAP_STATE" 2>/dev/null
+}
+
+mark_phase() {
+    if [[ -f "$BOOTSTRAP_STATE" ]]; then
+        if grep -q "^$1=" "$BOOTSTRAP_STATE" 2>/dev/null; then
+            sed -i.bak "s/^$1=.*/$1=$2/" "$BOOTSTRAP_STATE" && rm -f "${BOOTSTRAP_STATE}.bak"
+        else
+            echo "$1=$2" >> "$BOOTSTRAP_STATE"
+        fi
+    else
+        echo "$1=$2" > "$BOOTSTRAP_STATE"
+    fi
+}
+
+# Check for resume
+if [[ -f "$BOOTSTRAP_STATE" ]] && [[ "${1:-}" != "--fresh" ]]; then
+    COMPLETED=$(grep -c '=done$' "$BOOTSTRAP_STATE" 2>/dev/null || echo "0")
+    if [[ "$COMPLETED" -gt 0 ]]; then
+        echo "  Found previous bootstrap state ($COMPLETED phases completed)."
+        echo "  Resuming from last checkpoint. Use --fresh to start over."
+        echo ""
+    fi
+fi
 
 # Helper: install a package using the appropriate system package manager
 sys_install() {
@@ -517,11 +558,14 @@ echo ""
 
 # -- Frontend configuration --
 
+if ! phase_done "frontend_deps"; then
 echo "  Installing frontend dependencies..."
 cd frontend
 
 # Install core deps
+echo "  Installing packages (this may take a minute)..."
 npm install 2>&1 | tail -5
+echo "  Packages installed."
 
 # Install project dependencies
 npm install @supabase/supabase-js @pinia/nuxt pinia 2>&1 | tail -3
@@ -533,16 +577,20 @@ npm install -D tailwindcss @tailwindcss/vite 2>&1 | tail -3
 INSTALLED+=("TailwindCSS")
 
 # Install dev tools
+echo "  Installing dev tools..."
 npm install -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin 2>&1 | tail -3
 npm install -D prettier eslint-config-prettier 2>&1 | tail -3
 npm install -D vue-tsc typescript 2>&1 | tail -3
 npm install -D vitest @vue/test-utils happy-dom 2>&1 | tail -3
 INSTALLED+=("ESLint, Prettier, vue-tsc, Vitest")
+echo "  Dev tools installed."
 
 # Install Playwright for e2e testing
+echo "  Installing Playwright (this may take a minute)..."
 npm install -D @playwright/test @axe-core/playwright 2>&1 | tail -3
 npx playwright install chromium 2>&1 | tail -5
 INSTALLED+=("Playwright (e2e testing)")
+echo "  Playwright installed."
 
 # Create/update nuxt.config.ts
 cat > nuxt.config.ts << 'NUXTEOF'
@@ -962,10 +1010,15 @@ fi
 
 cd ..
 echo "  Frontend configured."
+mark_phase "frontend_deps" "done"
+else
+echo "  Frontend dependencies already installed — skipping."
+fi
 echo ""
 
 # -- Backend configuration --
 
+if ! phase_done "backend_deps"; then
 echo "  Setting up Python backend..."
 
 # Create virtual environment
@@ -985,8 +1038,10 @@ if [ -f "$VENV_ACTIVATE" ]; then
     source "$VENV_ACTIVATE"
     echo "  Activated virtual environment"
 
+    echo "  Installing Python packages (this may take a minute)..."
     pip install -r backend/requirements.txt 2>&1 | tail -5
     pip install -r backend/requirements-dev.txt 2>&1 | tail -5
+    echo "  Python packages installed."
     INSTALLED+=("FastAPI, Uvicorn, Supabase client, dev tools")
 else
     WARNINGS+=("Could not activate virtual environment")
@@ -1131,6 +1186,10 @@ PYEOF
 echo "  Created backend/middleware/rbac.py"
 
 echo "  Backend configured."
+mark_phase "backend_deps" "done"
+else
+echo "  Backend dependencies already installed — skipping."
+fi
 
 cat > SETUP.md << 'SETUPEOF'
 # Setup Guide
@@ -1173,6 +1232,30 @@ echo "────────────────────────�
 echo " Phase 3: Supabase"
 echo "───────────────────────────────────────────────────────────"
 echo ""
+
+# Check Docker availability for Supabase
+DOCKER_AVAILABLE=false
+if command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
+    DOCKER_AVAILABLE=true
+fi
+
+if ! $DOCKER_AVAILABLE; then
+    echo ""
+    echo "  Docker not available — skipping Supabase setup."
+    echo "  The app will start without a database. You can add Supabase later."
+    echo ""
+    WARNINGS+=("Supabase skipped (Docker not available)")
+
+    # Create placeholder .env if it doesn't exist
+    if [[ ! -f ".env" ]]; then
+        cat > .env << 'ENVEOF'
+# Supabase (fill in after setting up Supabase)
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+ENVEOF
+    fi
+elif ! phase_done "supabase_setup"; then
 
 # Install Supabase CLI if missing
 if ! command -v supabase &>/dev/null; then
@@ -1291,6 +1374,11 @@ for env_file in ".env.local" "frontend/.env"; do
     fi
 done
 
+mark_phase "supabase_setup" "done"
+else
+echo "  Supabase setup already completed — skipping."
+fi # end Docker available + phase check
+
 echo ""
 
 # ============================================================
@@ -1404,6 +1492,7 @@ fi
 # Update .gitignore with additional entries
 GITIGNORE_ENTRIES=(
     ".claude/audit.log"
+    ".claude/bootstrap-state"
     ".claude/tmp/"
     "CLAUDE.local.md"
     ".env.local"

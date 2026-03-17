@@ -145,6 +145,9 @@ All technology decisions are defined in `docs/tech-stack.md`.
 - **Node.js** (18+)
 - **Python** (3.9+)
 - **Docker** (for local Supabase)
+- **Flutter SDK** (3.x+) — only when `INCLUDE_MOBILE=true`
+- **Xcode** (iOS development) — only when building for iOS
+- **Android Studio** (Android development) — only when building for Android
 
 Docker is optional during build mode — the app works as a UI shell without a database, showing empty states and an informational banner. Supabase is required at the Team and Production deploy levels.
 

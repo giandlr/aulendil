@@ -55,32 +55,43 @@ ROLE_PASSWORD=$(openssl rand -base64 24 | tr -d '/+=\n' | head -c 24)
 # ----------------------------------------------------------
 echo "Creating schema and role..."
 
-psql "$ADMIN_DATABASE_URL" << SQL
+# Generate SQL with validated values (schema name is alphanumeric-validated above)
+SQL_TEMPLATE=$(cat << 'SQLTEMPLATE'
 -- Create app-scoped role
-DO \$\$
+DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${ROLE_NAME}') THEN
-        CREATE ROLE ${ROLE_NAME} LOGIN PASSWORD '${ROLE_PASSWORD}';
-        RAISE NOTICE 'Created role: ${ROLE_NAME}';
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '__ROLE_NAME__') THEN
+        CREATE ROLE __ROLE_NAME__ LOGIN PASSWORD '__ROLE_PASSWORD__';
+        RAISE NOTICE 'Created role: __ROLE_NAME__';
     ELSE
-        ALTER ROLE ${ROLE_NAME} PASSWORD '${ROLE_PASSWORD}';
-        RAISE NOTICE 'Updated password for role: ${ROLE_NAME}';
+        ALTER ROLE __ROLE_NAME__ PASSWORD '__ROLE_PASSWORD__';
+        RAISE NOTICE 'Updated password for role: __ROLE_NAME__';
     END IF;
-END \$\$;
+END $$;
 
 -- Create app schema
-CREATE SCHEMA IF NOT EXISTS ${APP_SCHEMA} AUTHORIZATION ${ROLE_NAME};
+CREATE SCHEMA IF NOT EXISTS __APP_SCHEMA__ AUTHORIZATION __ROLE_NAME__;
 
 -- Grant usage on schema
-GRANT USAGE ON SCHEMA ${APP_SCHEMA} TO ${ROLE_NAME};
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ${APP_SCHEMA} TO ${ROLE_NAME};
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA ${APP_SCHEMA} TO ${ROLE_NAME};
-ALTER DEFAULT PRIVILEGES IN SCHEMA ${APP_SCHEMA} GRANT ALL ON TABLES TO ${ROLE_NAME};
-ALTER DEFAULT PRIVILEGES IN SCHEMA ${APP_SCHEMA} GRANT ALL ON SEQUENCES TO ${ROLE_NAME};
+GRANT USAGE ON SCHEMA __APP_SCHEMA__ TO __ROLE_NAME__;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA __APP_SCHEMA__ TO __ROLE_NAME__;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA __APP_SCHEMA__ TO __ROLE_NAME__;
+ALTER DEFAULT PRIVILEGES IN SCHEMA __APP_SCHEMA__ GRANT ALL ON TABLES TO __ROLE_NAME__;
+ALTER DEFAULT PRIVILEGES IN SCHEMA __APP_SCHEMA__ GRANT ALL ON SEQUENCES TO __ROLE_NAME__;
 
 -- Set default search_path for role
-ALTER ROLE ${ROLE_NAME} SET search_path = ${APP_SCHEMA};
-SQL
+ALTER ROLE __ROLE_NAME__ SET search_path = __APP_SCHEMA__;
+SQLTEMPLATE
+)
+
+# Substitute validated values (ROLE_NAME and APP_SCHEMA are alphanumeric-validated;
+# ROLE_PASSWORD is base64-filtered with no special SQL chars)
+SQL_FINAL=$(echo "$SQL_TEMPLATE" \
+    | sed "s/__ROLE_NAME__/${ROLE_NAME}/g" \
+    | sed "s/__ROLE_PASSWORD__/${ROLE_PASSWORD}/g" \
+    | sed "s/__APP_SCHEMA__/${APP_SCHEMA}/g")
+
+echo "$SQL_FINAL" | psql "$ADMIN_DATABASE_URL"
 
 if [[ $? -ne 0 ]]; then
     echo "ERROR: Schema setup failed." >&2

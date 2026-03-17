@@ -224,7 +224,10 @@ elif [[ "$MODE" == "deploy" ]]; then
             TEST_FILE=$(find frontend/tests -name "${BASE_NAME}.test.*" -o -name "${BASE_NAME}.spec.*" 2>/dev/null | head -1)
             if [[ -n "$TEST_FILE" ]] && command -v npx &>/dev/null; then
                 echo "[$TIMESTAMP] POST-EDIT: running test $TEST_FILE" >> "$AUDIT_LOG"
-                cd frontend 2>/dev/null && npx vitest run "../$TEST_FILE" --reporter=verbose >> "../$AUDIT_LOG" 2>&1 || {
+                TIMEOUT_CMD=""
+                command -v timeout &>/dev/null && TIMEOUT_CMD="timeout 60"
+                command -v gtimeout &>/dev/null && TIMEOUT_CMD="gtimeout 60"
+                cd frontend 2>/dev/null && $TIMEOUT_CMD npx vitest run "../$TEST_FILE" --reporter=verbose >> "../$AUDIT_LOG" 2>&1 || {
                     echo "[$TIMESTAMP] WARNING: Test $TEST_FILE failed" >> "../$AUDIT_LOG"
                 }
                 cd - &>/dev/null || true
@@ -333,7 +336,10 @@ elif [[ "$MODE" == "deploy" ]]; then
             TEST_FILE=$(find backend/tests -name "test_${BASE_NAME}.py" 2>/dev/null | head -1)
             if [[ -n "$TEST_FILE" ]] && command -v pytest &>/dev/null; then
                 echo "[$TIMESTAMP] POST-EDIT: running test $TEST_FILE" >> "$AUDIT_LOG"
-                cd backend 2>/dev/null && pytest "../$TEST_FILE" -v >> "../$AUDIT_LOG" 2>&1 || {
+                TIMEOUT_CMD=""
+                command -v timeout &>/dev/null && TIMEOUT_CMD="timeout 60"
+                command -v gtimeout &>/dev/null && TIMEOUT_CMD="gtimeout 60"
+                cd backend 2>/dev/null && $TIMEOUT_CMD pytest "../$TEST_FILE" -v >> "../$AUDIT_LOG" 2>&1 || {
                     echo "[$TIMESTAMP] WARNING: Test $TEST_FILE failed" >> "../$AUDIT_LOG"
                 }
                 cd - &>/dev/null || true

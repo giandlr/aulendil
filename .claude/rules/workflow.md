@@ -57,18 +57,18 @@
 
 **Trigger:** User says "build me...", "I want...", "create...", "make me..." AND project is greenfield (`[APP_NAME]` placeholder still present in CLAUDE.md or no migrations exist).
 
-**Round 1 — Big Picture (4 questions via AskUserQuestion with clickable options):**
-- "What kind of app is this closest to?" (dashboard / submission tool / communication tool / scheduling tool / **mobile app** / other)
+**Round 1 — Big Picture (2 questions via AskUserQuestion with clickable options):**
+- "What kind of app is this closest to?" (dashboard / form tool / communication tool / scheduling tool / other)
 - "Who will use this?" (just me / my team / team + external people)
-- "Do you need a mobile app (iOS/Android)?" (yes — mobile + web / web only / mobile only)
-- "Which backend language?" (Python — FastAPI / C# — ASP.NET Core)
 
-*Mobile answer writes `INCLUDE_MOBILE=true` to `.env`; backend answer writes `BACKEND_LANGUAGE=python` or `BACKEND_LANGUAGE=csharp` to `.env`. Bootstrap reads these on next run.*
-
-**Round 2 — Core Features + Baseline (2 questions):**
+**Round 2 — Core Features + Baseline (3–4 questions):**
 - Present feature options as multi-select based on Round 1
 - Challenge: "Is there anything I'm missing? Any approval workflows or external system connections?"
+- "Do you need a mobile app?" (yes — mobile + web / web only)
+- "Which backend?" (Python — faster for small teams / C# — better for enterprise scale)
 - **Production baseline checklist** (see `production-baseline.md`): Based on the audience answer from Round 1, present the applicable baseline features as a yes/no checklist via AskUserQuestion. Frame as: "Here are a few things users almost always expect — which should I include?" For team/external apps this must include: forgot password, user management page, role assignment, user deactivation. For external apps also include: email verification, invite flow.
+
+*Mobile answer writes `INCLUDE_MOBILE=true` to `.env`; backend answer writes `BACKEND_LANGUAGE=python` or `BACKEND_LANGUAGE=csharp` to `.env`. Bootstrap reads these on next run.*
 
 **Round 3 — Data & Access (1 question):**
 - "Should everyone see everything, or only their own stuff?" (everyone / own only / role-based)
@@ -83,17 +83,39 @@ Default mode. Write correct code automatically, narrate in plain English.
 
 **Clarify before building — mandatory for new features:** Before writing any new feature, ask 1–2 focused questions via AskUserQuestion to confirm scope and behavior. Do not start building until these are answered. Good questions cover: who can do this action (all users or admins only?), what happens in the edge case (what if the item is already deleted?), and any specific UI expectation (table or cards?). Keep questions short with clickable options where possible. Skip clarification only for trivially obvious tasks (e.g. "fix that typo").
 
+**When to skip clarification:**
+- UI-only changes (styling, layout, text updates)
+- Bug fixes to existing features
+- Adding a field to an existing form/table
+- Features where `.claude/brief.md` already specifies behavior
+
+**Always clarify for:**
+- New database tables or data structures
+- Permission/access scope changes
+- External service integrations
+- Features affecting multiple layers (frontend + backend + migration)
+
 **Auto-include:** Loading/error/empty states in Vue components, rate limiting + pagination + soft deletes + auth guards in Python/C# routes, RLS + standard columns + FK indexes in migrations, tests alongside implementation. For Flutter: Riverpod providers in `domain/`, repositories in `data/`, screens in `presentation/`. Narrate each in one sentence.
 
 **Production baseline:** After building the first substantive feature in a new project, check `production-baseline.md` against the audience confirmed in Discovery. If baseline features (forgot password, user management, role assignment, etc.) have not been built yet, flag them in plain English and offer to add them before moving on. Never silently skip this check.
 
 **Validate after every feature — mandatory:** After writing files for any feature, run tests + lint + type-check in parallel (see agents.md). Fix every failure before responding. Never hand back code that doesn't pass. The user should never see a broken state.
 
+**Contextual validation narration:** When validation fails, narrate in context of the current gate level. Example: "Tests are at 58% coverage — we need 60% for the MVP gate. I'm adding 2 tests to get us there." If the failure doesn't block the current gate, say so: "This lint warning won't block deployment, but let me fix it to keep things clean."
+
+**Project status dashboard:** After completing any feature, update `.claude/status.md` with the current state of baseline and core features. Mark completed items with `[x]`. This file is the manager's at-a-glance project dashboard — keep it accurate.
+
 **Language:** No tool names, no sub-agent mentions, no "Missing X" — say "I added...". Plain English, one sentence per fix.
 
 **Secrets:** Write placeholder in env file, ask user for the one key they need, handle everything else automatically.
 
 **After features:** Run `supabase db push` if migration created. Fix env vars yourself. Start servers if needed. End with one plain-English line. Never give "Next steps" blocks.
+
+**Multi-layer summary:** After completing a feature that touches 2+ layers, end with a one-line-per-layer summary:
+> "Done. Here's what I added:
+> - Database: `tasks` table with RLS policies
+> - Backend: `GET/POST/PATCH /api/tasks` with auth
+> - Frontend: Task board page at `/app/tasks`"
 
 **Blocks:** Hardcoded secrets, service role key in frontend, direct Supabase calls outside services/ (web) or features/*/data/ (mobile), raw SQL string concatenation in C#, business logic in C# route handlers.
 
@@ -160,9 +182,37 @@ See `.claude/rules/agents.md` for full guidance. Never mention agents to the use
 
 On session start, check `.claude/session/latest.json`:
 - If `status: "in_progress"`, read the checkpoint and offer to resume: "It looks like we were working on [task]. Want to pick up where we left off?"
+- If `status: "completed"` but `git status` shows uncommitted changes, offer: "We finished [task] but the changes aren't committed yet. Want me to review and commit?"
 - If `latest.json` is missing but `.claude/session/file-log.txt` is non-empty, infer crash — read file log + `git status` and offer recovery.
 
 Progress tracking: Write `.claude/session/plan.md` with checkboxes for multi-step tasks. On resume, check file existence and box state.
+
+**Session checkpoint schema** (`.claude/session/latest.json`):
+```json
+{
+  "status": "in_progress | completed | failed",
+  "task": "Short description of current task",
+  "checkpoint": "Last completed step or milestone",
+  "files_modified": ["path/to/file1.ts", "path/to/file2.py"],
+  "timestamp": "2026-03-17T14:30:00Z"
+}
+```
+
+**Error recovery:** Pipeline and deploy scripts write `.claude/last-error.json` on failure:
+```json
+{
+  "timestamp": "2026-03-17T14:30:00Z",
+  "stage": "deploy-azure",
+  "error": "Docker push failed",
+  "log_file": ".claude/tmp/docker-build.log",
+  "recovery": "Check ACR credentials and retry"
+}
+```
+On session start, if this file exists, read it and offer recovery: *"It looks like the last deployment failed at [stage]. Want me to retry?"* Delete the file after successful recovery.
+
+**First-run detection:** On first session in a greenfield project (no `.claude/brief.md`, `[APP_NAME]` placeholder still in CLAUDE.md), start with:
+> "Welcome! I'll help you build your app. First, I have a few quick questions about what you need."
+> If `manual/guide.html` exists, add: "For a visual overview, open manual/guide.html in your browser."
 
 ## Definition of Done
 

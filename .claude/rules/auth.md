@@ -107,3 +107,11 @@ async def get_current_user(request: Request) -> User:
 - No Supabase Auth client calls in Azure mode — session is managed by the proxy cookie
 - `useAuth.ts` composable reads `DEPLOY_TARGET` and either calls Supabase Auth or reads from a `/api/me` endpoint backed by the `X-Forwarded-Email` header
 - Logout in Azure mode: redirect to OAuth2 Proxy sign-out URL (`/oauth2/sign_out`)
+
+## CSRF Protection
+
+### Supabase Auth mode (JWT in Authorization header)
+CSRF is not applicable — authentication uses Bearer tokens in the Authorization header, not cookies. No CSRF tokens needed. Document this explicitly so future developers don't add unnecessary CSRF middleware.
+
+### Azure mode (OAuth2 Proxy cookie)
+The OAuth2 Proxy handles CSRF protection via SameSite=Lax cookies. Custom form endpoints that accept state-changing requests must validate the `Origin` header against the allowed domain. Never set `SameSite=None` on auth cookies.

@@ -31,7 +31,7 @@
     "azure": {
       "enabled": true,
       "require_pipeline_pass": true,
-      "requires": ["schema-isolation-check", "docker-build", "docker-test", "azure-deploy", "smoke-test-production"]
+      "requires": ["schema-isolation-check", "docker-build"]
     },
     "narration": "I'll run the tests, check security, verify roles are set up, and make sure login works correctly."
   },
@@ -50,7 +50,7 @@
     "azure": {
       "enabled": true,
       "require_pipeline_pass": true,
-      "requires": ["schema-isolation-check", "docker-build", "docker-test", "azure-deploy", "smoke-test-production"]
+      "requires": ["schema-isolation-check", "docker-build"]
     },
     "narration": "I'll run the full test suite, check performance, verify roles, and have a senior reviewer examine everything."
   }

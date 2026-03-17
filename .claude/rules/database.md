@@ -35,3 +35,10 @@ Every table: `id uuid DEFAULT gen_random_uuid() PRIMARY KEY`, `created_at timest
 ## Query Safety
 
 - Specify columns needed — no `SELECT *`. Use supabase-py query builder — no raw SQL. Parameterized queries only. `.limit()` on all queries. `.single()` when expecting one result.
+
+## Audit Log RLS
+
+- Admins: full SELECT access to all audit log entries
+- Non-admin users: SELECT only their own entries (`user_id = auth.uid()`)
+- No UPDATE or DELETE policies — audit logs are append-only (INSERT via triggers only)
+- Service role bypasses RLS for trigger-based inserts

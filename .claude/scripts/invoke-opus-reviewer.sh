@@ -39,7 +39,19 @@ SYSTEM_PROMPT=$(cat .claude/reviewers/opus-system-prompt.md 2>/dev/null || echo 
 unset CLAUDECODE 2>/dev/null || true
 
 PROMPT_FILE=$(mktemp)
-printf 'Please review the following code changes:\n\n%s' "$(cat "$PAYLOAD_FILE")" > "$PROMPT_FILE"
+trap 'rm -f "$PROMPT_FILE"' EXIT
+cat > "$PROMPT_FILE" << 'PROMPT_HEADER'
+Please review the following code changes.
+
+IMPORTANT: At the end of your review, include a machine-parseable gate decision line in this exact format:
+<!-- GATE: APPROVED -->
+or
+<!-- GATE: CHANGES_REQUIRED, BLOCKERS: <number> -->
+
+This line must appear on its own line at the end of your review.
+
+PROMPT_HEADER
+cat "$PAYLOAD_FILE" >> "$PROMPT_FILE"
 
 # Build allowed tools argument — only add if claude supports it
 TOOLS_ARG=""
@@ -61,7 +73,6 @@ else
         < "$PROMPT_FILE" 2>&1)
 fi
 CLAUDE_EXIT=$?
-rm -f "$PROMPT_FILE"
 
 if [[ $CLAUDE_EXIT -eq 124 ]]; then
     echo "WARNING: Opus review timed out after ${TIMEOUT_SECS}s" >&2
@@ -82,15 +93,29 @@ echo "$REVIEW_RESULT"
 echo ""
 echo "Review saved to: $REVIEW_OUTPUT"
 
-# Parse gate decision
+# Parse gate decision — structured format first, then regex fallback
 GATE_DECISION=""
-if echo "$REVIEW_RESULT" | grep -qiE 'Gate:[[:space:]]*(APPROVED WITH CONDITIONS|APPROVED)'; then
+
+# Try structured HTML comment format first (machine-parseable)
+if echo "$REVIEW_RESULT" | grep -qE '<!--\s*GATE:\s*APPROVED\s*-->'; then
     GATE_DECISION="APPROVED"
-elif echo "$REVIEW_RESULT" | grep -qiE 'Gate:[[:space:]]*CHANGES[[:space:]]*REQUIRED'; then
+elif echo "$REVIEW_RESULT" | grep -qE '<!--\s*GATE:\s*CHANGES_REQUIRED'; then
     GATE_DECISION="CHANGES_REQUIRED"
 fi
 
-BLOCKER_COUNT=$(echo "$REVIEW_RESULT" | grep -ioE 'Blockers:[[:space:]]*[0-9]+' | grep -oE '[0-9]+' | head -1; true)
+# Fallback to original regex parsing
+if [[ -z "$GATE_DECISION" ]]; then
+    if echo "$REVIEW_RESULT" | grep -qiE 'Gate:[[:space:]]*(APPROVED WITH CONDITIONS|APPROVED)'; then
+        GATE_DECISION="APPROVED"
+    elif echo "$REVIEW_RESULT" | grep -qiE 'Gate:[[:space:]]*CHANGES[[:space:]]*REQUIRED'; then
+        GATE_DECISION="CHANGES_REQUIRED"
+    fi
+fi
+
+BLOCKER_COUNT=$(echo "$REVIEW_RESULT" | grep -ioE 'BLOCKERS:[[:space:]]*[0-9]+' | grep -oE '[0-9]+' | head -1 || true)
+if [[ -z "$BLOCKER_COUNT" ]]; then
+    BLOCKER_COUNT=$(echo "$REVIEW_RESULT" | grep -ioE 'Blockers:[[:space:]]*[0-9]+' | grep -oE '[0-9]+' | head -1 || true)
+fi
 
 echo ""
 echo "═══════════════════════════════════════════════════════════"
@@ -107,9 +132,10 @@ if [[ -n "$BLOCKER_COUNT" && "$BLOCKER_COUNT" -gt 0 ]]; then
     exit 2
 fi
 
+# Fail-safe: if we can't parse the decision, default to CHANGES_REQUIRED
 if [[ -z "$GATE_DECISION" ]]; then
-    echo "WARNING: Could not parse gate decision. Manual review recommended." >&2
-    exit 1
+    echo "WARNING: Could not parse gate decision — defaulting to CHANGES REQUIRED (fail-safe)." >&2
+    exit 2
 fi
 
 echo "OPUS REVIEW: APPROVED"

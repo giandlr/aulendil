@@ -52,6 +52,8 @@ Use this table to determine what must be built and when to surface it.
 or Tier 2 (Opus advisory) per `docs/enterprise-features.md`. Claude does not wait for the Opus
 reviewer to catch these — they are confirmed in Discovery and built proactively.
 
+> **How audience and Tier interact:** The audience table above determines what Claude asks during Discovery. The Tier in `enterprise-features.md` determines pipeline enforcement. "Required" in this table = Claude recommends during Discovery and builds proactively. "Tier 1" in enterprise-features.md = pipeline blocks deployment if absent. These are complementary — Discovery catches it early, the pipeline catches it at deploy.
+
 ---
 
 ## When to Surface These
@@ -62,11 +64,19 @@ Frame it as: *"Here are a few things users almost always expect — which should
 
 - For **"just me"** audience: skip the checklist, but mention forgot password as a quick add.
 - For **"my team"** audience: checklist covers forgot password, account settings, user list,
-  role assignment, user deactivation, account lockout.
+  role assignment, user deactivation.
 - For **"team + external"** audience: full checklist — all rows marked Required above.
 
 **Never skip the baseline checklist for team or external apps**, even if the initial request
 already includes 3+ features and would otherwise fast-path through Discovery.
+
+> **"Offer" vs "Required":** "Required" means Claude must build it — no opt-out. "Offer" means Claude presents the option but accepts a "no" without pushing back.
+
+**Checklist presentation:** Present baseline features in two groups for clarity:
+- **"The basics"** (always recommended for team/external): Forgot password, account settings, user list, role assignment, user deactivation
+- **"For tighter security"** (recommended for external users): Email verification, invite flow, account lockout, session management, password policies, audit log
+
+This lets managers quickly say "yes to basics" without reading 12 individual items.
 
 ### During Build (new feature request)
 If a manager asks for "user management", "settings", "permissions", or "admin panel" without
@@ -74,12 +84,16 @@ specifying scope, ask one clarification question before building:
 *"Should admins be able to deactivate accounts, or just change roles?"* — then build both
 unless there's a strong objection.
 
-### Opportunistic (any time during Build Mode)
-After the first substantive feature in a new project, check whether baseline features have been
-confirmed and built. If any Required items are missing for the confirmed audience, flag in
-plain English and offer to add them before continuing:
-*"I noticed there's no way for users to reset their password yet — want me to add that now?
-It only takes a few minutes."*
+### Persistent Tracking (replaces one-time reminders)
+After Discovery confirms the audience and baseline features, write the approved checklist
+to `.claude/BASELINE.md`. During Build, check items off as they are implemented.
+
+Before every new feature, check `.claude/BASELINE.md`. If unchecked items remain, mention
+them once per session: *"We still have N baseline features to add. Want me to build one
+before [requested feature]?"*
+
+This replaces the one-time "after first substantive feature" reminder with persistent tracking
+that survives across sessions.
 
 ---
 

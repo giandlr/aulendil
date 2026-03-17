@@ -38,3 +38,9 @@ Every async operation needs loading, error, and empty states. Loading: skeleton/
 ## Realtime
 
 - Subscribe in composables, not components. Unsubscribe in `onUnmounted`. Handle reconnection. Signed URLs < 1hr.
+
+## CSRF
+
+- JWT-based auth (Supabase mode): No CSRF protection needed — tokens are sent via Authorization header, not cookies
+- Cookie-based auth (Azure OAuth2 Proxy mode): Proxy handles CSRF via SameSite cookies. For custom forms that POST to non-API endpoints, validate `Origin` header server-side
+- Never set `SameSite=None` on auth-related cookies

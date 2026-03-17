@@ -81,7 +81,26 @@ if [ ! -f ".vercel/project.json" ]; then
 fi
 
 echo "  Pre-flight checks passed."
+
+# Check for service role key leaking to frontend
+if grep -rq "SERVICE_ROLE" frontend/ 2>/dev/null; then
+    echo "  ERROR: SUPABASE_SERVICE_ROLE_KEY reference found in frontend/" >&2
+    echo "  The service role key must never be in client-side code." >&2
+    exit 1
+fi
+
 echo ""
+
+# Pre-deploy: check database is configured if migrations exist
+if [[ -d "supabase/migrations" ]] && ls supabase/migrations/*.sql &>/dev/null; then
+    if [[ -z "${DATABASE_URL:-}" && -z "${SUPABASE_URL:-}" ]]; then
+        echo "  WARNING: Migrations exist but no database connection configured."
+        if [[ "$ENVIRONMENT" == "production" ]]; then
+            echo "  ERROR: Cannot deploy to production without database configuration." >&2
+            exit 1
+        fi
+    fi
+fi
 
 # ── 2. Deploy ────────────────────────────────────────────────
 

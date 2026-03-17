@@ -98,3 +98,35 @@ BLOCK:
 WARN:
 - Missing `RequireAuthorization()` / `[Authorize]` on non-public endpoints
 - xUnit test without assertion
+
+## Rate Limiting
+
+- Use `AspNetCoreRateLimit` NuGet package (same middleware pattern as Python's `slowapi`)
+- Configure in `Program.cs` via `builder.Services.AddInMemoryRateLimiting()` or Redis-backed
+- Apply `[EnableRateLimiting("fixed")]` on controllers or `RequireRateLimiting("fixed")` on endpoints
+- Stricter limits on auth endpoints (login, register, reset)
+
+## Azure RLS (DEPLOY_TARGET=azure)
+
+- Filter queries by email column via `app.current_user_email` PostgreSQL setting
+- `AppDbContext` sets `SET app.current_user_email` on connection open via `DbConnection.StateChange` event
+- Global query filter in EF Core: `.HasQueryFilter(e => EF.Property<string>(e, "Email") == _currentUserEmail)`
+
+## Custom JWT Claims
+
+- Extract role from `ClaimsPrincipal` in middleware: `context.User.FindFirstValue(ClaimTypes.Role)`
+- Map Supabase custom claims to standard .NET claim types in `JwtBearerEvents.OnTokenValidated`
+- Use `[Authorize(Roles = "Admin,Manager")]` or policy-based auth for route protection
+
+## Idempotency
+
+- Implement `Idempotency-Key` header middleware in `Middleware/IdempotencyMiddleware.cs`
+- Store `(key, response_body, status_code, expires_at)` in `idempotency_keys` table via EF Core
+- Return cached response for duplicate keys within TTL (default: 24 hours)
+- Only applies to POST/PUT/PATCH — GET and DELETE are naturally idempotent
+
+## Service Role Key
+
+- Read from `Environment.GetEnvironmentVariable("SUPABASE_SERVICE_ROLE_KEY")` only
+- **BLOCK:** Service role key in `appsettings.json`, `appsettings.Development.json`, or any committed config file
+- In Azure mode: use Azure Key Vault references (`@Microsoft.KeyVault(...)`) in Container App env vars

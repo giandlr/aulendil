@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
+# Debug mode
+[[ "${AULENDIL_DEBUG:-}" == "1" ]] && set -x
 
 # Master CI/CD pipeline orchestrator — gate-level and deploy-target aware
 # Usage: bash .claude/scripts/run-pipeline.sh [mvp|team|production]
@@ -13,8 +15,8 @@ PIPELINE_START=$(date +%s)
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
 # Set deploy mode, restore build mode on exit
-echo "deploy" > .claude/mode
-trap 'echo "build" > .claude/mode' EXIT
+echo "deploy:$$" > .claude/mode
+trap 'echo "build" > .claude/mode; rm -f .claude/tmp/stage-pids.txt' EXIT
 
 # Clean tmp directory
 rm -rf .claude/tmp
@@ -58,6 +60,7 @@ stage_required() {
 # Track stage results (bash 3.2 compatible — no associative arrays)
 FAILED_STAGES=()
 # STAGE_PID_<name> and STAGE_STATUS_<name> set dynamically below
+SPAWNED_STAGES=()
 
 # ===========================================================
 # Stage: Security Scan (always runs)
@@ -67,6 +70,7 @@ echo "Running security scan..."
     bash .claude/scripts/security-scan.sh > .claude/tmp/security-output.txt 2>&1
 ) &
 STAGE_PID_security=$!
+SPAWNED_STAGES+=("security")
 
 # ===========================================================
 # Stage: Smoke Test (mvp and above)
@@ -77,6 +81,7 @@ if stage_required "app-starts" || stage_required "happy-path-works"; then
         GATE_LEVEL="$GATE_LEVEL" bash .claude/scripts/smoke-test.sh > .claude/tmp/smoke-output.txt 2>&1
     ) &
     STAGE_PID_smoke=$!
+    SPAWNED_STAGES+=("smoke")
 else
     STAGE_STATUS_smoke="SKIP"
 fi
@@ -117,6 +122,7 @@ if stage_required "unit-tests"; then
         fi
     ) &
     STAGE_PID_unit=$!
+    SPAWNED_STAGES+=("unit")
 else
     STAGE_STATUS_unit="SKIP"
 fi
@@ -143,6 +149,7 @@ if stage_required "integration-tests"; then
         fi
     ) &
     STAGE_PID_integration=$!
+    SPAWNED_STAGES+=("integration")
 else
     STAGE_STATUS_integration="SKIP"
 fi
@@ -169,6 +176,7 @@ if stage_required "ui-tests"; then
         fi
     ) &
     STAGE_PID_ui=$!
+    SPAWNED_STAGES+=("ui")
 else
     STAGE_STATUS_ui="SKIP"
 fi
@@ -191,10 +199,11 @@ if stage_required "performance"; then
             fi
         fi
 
-        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 2>/dev/null || echo "000")
+        PERF_URL="${FRONTEND_URL:-http://localhost:3000}"
+        HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$PERF_URL" 2>/dev/null || echo "000")
         if [[ "$HTTP_STATUS" != "000" && "$HTTP_STATUS" != "0" ]]; then
             if npx --yes @lhci/cli --version &>/dev/null 2>&1; then
-                npx --yes @lhci/cli collect --url=http://localhost:3000 --numberOfRuns=1 \
+                npx --yes @lhci/cli collect --url="$PERF_URL" --numberOfRuns=1 \
                     2>&1 | tee .claude/tmp/lighthouse-output.txt
                 [[ ${PIPESTATUS[0]} -eq 0 ]] && LH_STATUS="PASS" || LH_STATUS="FAIL"
             fi
@@ -208,6 +217,7 @@ if stage_required "performance"; then
         [[ "$OVERALL" == "FAIL" ]] && exit 1 || exit 0
     ) &
     STAGE_PID_perf=$!
+    SPAWNED_STAGES+=("perf")
 else
     STAGE_STATUS_perf="SKIP"
 fi
@@ -219,6 +229,7 @@ if [[ "$DEPLOY_TARGET" == "azure" ]] && stage_required "schema-isolation-check";
     echo "Running Azure schema isolation check..."
     (
         APP_SCHEMA="${APP_SCHEMA:-}"
+        GATE="$GATE_LEVEL"
         ISSUES=0
 
         if [[ -z "$APP_SCHEMA" ]]; then
@@ -229,7 +240,7 @@ if [[ "$DEPLOY_TARGET" == "azure" ]] && stage_required "schema-isolation-check";
         # Check migrations don't reference a hardcoded schema name
         if [[ -d "supabase/migrations" && -n "$APP_SCHEMA" ]]; then
             OTHER_SCHEMAS=$(grep -rE '\bSET\s+search_path\s+TO\s+' supabase/migrations/ 2>/dev/null \
-                | grep -v "$APP_SCHEMA" | grep -v "public" | head -5 || true)
+                | grep -wv "$APP_SCHEMA" | grep -v "public" | head -5 || true)
             if [[ -n "$OTHER_SCHEMAS" ]]; then
                 echo "  WARNING: Migrations reference schemas other than $APP_SCHEMA"
                 echo "$OTHER_SCHEMAS"
@@ -237,7 +248,7 @@ if [[ "$DEPLOY_TARGET" == "azure" ]] && stage_required "schema-isolation-check";
             fi
         fi
 
-        if [[ -n "$BLOB_CONTAINER" && "$BLOB_CONTAINER" == "$APP_SCHEMA" ]]; then
+        if [[ -n "${BLOB_CONTAINER:-}" && "$BLOB_CONTAINER" == "$APP_SCHEMA" ]]; then
             echo "  + BLOB_CONTAINER matches APP_SCHEMA: $BLOB_CONTAINER"
         fi
 
@@ -247,10 +258,15 @@ if [[ "$DEPLOY_TARGET" == "azure" ]] && stage_required "schema-isolation-check";
         else
             echo '{"stage": "schema-isolation-check", "overall_status": "WARN", "issues": '"$ISSUES"'}' \
                 > .claude/tmp/schema-check-results.json
-            exit 0  # Warn only, don't fail pipeline
+            # Fail pipeline at production gate; warn only at lower gates
+            if [[ "$GATE" == "production" ]]; then
+                exit 1
+            fi
+            exit 0
         fi
     ) &
     STAGE_PID_schema=$!
+    SPAWNED_STAGES+=("schema")
 else
     STAGE_STATUS_schema="SKIP"
 fi
@@ -284,8 +300,64 @@ if [[ "$DEPLOY_TARGET" == "azure" ]] && stage_required "docker-build"; then
         fi
     ) &
     STAGE_PID_docker=$!
+    SPAWNED_STAGES+=("docker")
 else
     STAGE_STATUS_docker="SKIP"
+fi
+
+# ===========================================================
+# Stage: Tier 1 Enterprise Feature Check (production only)
+# ===========================================================
+if stage_required "tier1-enterprise"; then
+    echo "Running Tier 1 enterprise feature check..."
+    (
+        T1_ISSUES=0
+
+        # RBAC migration
+        if [[ ! -f "supabase/migrations/00000000000001_rbac.sql" ]]; then
+            echo "  x Missing RBAC migration"
+            T1_ISSUES=$((T1_ISSUES + 1))
+        fi
+
+        # Health endpoint
+        HEALTH_FOUND=false
+        if grep -rqlE '@(app|router)\.(get|route).*["\x27]/health["\x27]' backend/ 2>/dev/null; then
+            HEALTH_FOUND=true
+        elif grep -rqlE 'MapGet.*"/health"' backend/ 2>/dev/null; then
+            HEALTH_FOUND=true
+        fi
+        if ! $HEALTH_FOUND; then
+            echo "  x Missing health endpoint (GET /health)"
+            T1_ISSUES=$((T1_ISSUES + 1))
+        fi
+
+        # RLS on all migration tables
+        if [[ -d "supabase/migrations" ]]; then
+            for mig in supabase/migrations/*.sql; do
+                [[ ! -f "$mig" ]] && continue
+                if grep -qiE 'CREATE\s+TABLE' "$mig" 2>/dev/null; then
+                    if ! grep -qiE 'ENABLE\s+ROW\s+LEVEL\s+SECURITY|CREATE\s+POLICY' "$mig" 2>/dev/null; then
+                        echo "  x Missing RLS in migration: $(basename "$mig")"
+                        T1_ISSUES=$((T1_ISSUES + 1))
+                    fi
+                fi
+            done
+        fi
+
+        if [[ $T1_ISSUES -eq 0 ]]; then
+            echo '{"stage": "tier1-enterprise", "overall_status": "PASS"}' > .claude/tmp/tier1-results.json
+            echo "  Tier 1 enterprise check: PASS"
+            exit 0
+        else
+            echo '{"stage": "tier1-enterprise", "overall_status": "FAIL", "issues": '"$T1_ISSUES"'}' > .claude/tmp/tier1-results.json
+            echo "  Tier 1 enterprise check: FAIL ($T1_ISSUES issues)"
+            exit 1
+        fi
+    ) &
+    STAGE_PID_tier1=$!
+    SPAWNED_STAGES+=("tier1")
+else
+    STAGE_STATUS_tier1="SKIP"
 fi
 
 # ===========================================================
@@ -295,7 +367,8 @@ echo ""
 echo "Waiting for stages to complete..."
 echo ""
 
-for stage in security smoke unit integration ui perf schema docker; do
+# Wait for spawned stages first (data-driven)
+for stage in "${SPAWNED_STAGES[@]}"; do
     pid_var="STAGE_PID_${stage}"
     pid="${!pid_var:-}"
     if [[ -n "$pid" ]]; then
@@ -309,13 +382,64 @@ for stage in security smoke unit integration ui perf schema docker; do
             FAILED_STAGES+=("$stage")
             echo "  x $stage: FAIL (exit $EXIT_CODE)"
         fi
-    else
-        status_var="STAGE_STATUS_${stage}"
-        echo "  - $stage: ${!status_var:-SKIP}"
+    fi
+done
+
+# Report skipped stages
+for stage in security smoke unit integration ui perf schema docker tier1; do
+    status_var="STAGE_STATUS_${stage}"
+    if [[ -z "${!status_var:-}" ]]; then
+        echo "  - $stage: SKIP"
     fi
 done
 
 echo ""
+
+# ===========================================================
+# RBAC Verification (team and above — runs before gate decision)
+# ===========================================================
+
+if stage_required "rbac-check"; then
+    echo ""
+    echo "Verifying RBAC setup..."
+    RBAC_OK=true
+
+    if [[ -f "supabase/migrations/00000000000001_rbac.sql" ]]; then
+        echo "  + RBAC migration exists"
+    else
+        echo "  x RBAC migration not found"
+        RBAC_OK=false
+    fi
+
+    if [[ -f "backend/middleware/rbac.py" ]] || [[ -f "backend/Middleware/RbacMiddleware.cs" ]]; then
+        echo "  + RBAC middleware exists"
+    else
+        echo "  x RBAC middleware not found"
+        RBAC_OK=false
+    fi
+
+    if [[ -f "frontend/composables/useRole.ts" ]]; then
+        echo "  + useRole composable exists"
+    else
+        echo "  x frontend/composables/useRole.ts not found"
+        RBAC_OK=false
+    fi
+
+    if $RBAC_OK; then
+        echo "  RBAC check: PASS"
+        eval "STAGE_STATUS_rbac=PASS"
+    else
+        if [[ "$GATE_LEVEL" == "team" || "$GATE_LEVEL" == "production" ]]; then
+            echo "  RBAC check: FAIL — required for $GATE_LEVEL gate"
+            eval "STAGE_STATUS_rbac=FAIL"
+            FAILED_STAGES+=("rbac")
+        else
+            echo "  RBAC check: WARNING — some RBAC files missing"
+            eval "STAGE_STATUS_rbac=WARN"
+        fi
+    fi
+    echo ""
+fi
 
 # ===========================================================
 # Gate Decision
@@ -341,6 +465,8 @@ UI Tests:         ${STAGE_STATUS_ui:-SKIP}
 Performance:      ${STAGE_STATUS_perf:-SKIP}
 Schema Check:     ${STAGE_STATUS_schema:-SKIP}
 Docker Build:     ${STAGE_STATUS_docker:-SKIP}
+RBAC Check:       ${STAGE_STATUS_rbac:-SKIP}
+Tier1 Ent.:       ${STAGE_STATUS_tier1:-SKIP}
 Opus Review:      SKIPPED
 
 GATE DECISION: PIPELINE FAILED
@@ -363,18 +489,24 @@ if stage_required "opus-review"; then
     echo "==========================================================="
     echo ""
 
-    bash .claude/scripts/build-review-payload.sh
+    if ! bash .claude/scripts/build-review-payload.sh; then
+        echo "ERROR: Failed to build review payload" >&2
+        OPUS_STATUS="PAYLOAD_ERROR"
+        OPUS_EXIT=1
+    fi
     echo ""
 
-    if command -v timeout &>/dev/null; then
-        timeout 300 bash .claude/scripts/invoke-opus-reviewer.sh
-    else
-        bash .claude/scripts/invoke-opus-reviewer.sh
-    fi
-    OPUS_EXIT=$?
+    if [[ "$OPUS_STATUS" != "PAYLOAD_ERROR" ]]; then
+        if command -v timeout &>/dev/null; then
+            timeout 300 bash .claude/scripts/invoke-opus-reviewer.sh
+        else
+            bash .claude/scripts/invoke-opus-reviewer.sh
+        fi
+        OPUS_EXIT=$?
 
-    OPUS_STATUS="APPROVED"
-    [[ $OPUS_EXIT -ne 0 ]] && OPUS_STATUS="CHANGES REQUIRED"
+        OPUS_STATUS="APPROVED"
+        [[ $OPUS_EXIT -ne 0 ]] && OPUS_STATUS="CHANGES REQUIRED"
+    fi
 fi
 
 # ===========================================================
@@ -403,6 +535,8 @@ UI Tests:         ${STAGE_STATUS_ui:-SKIP}
 Performance:      ${STAGE_STATUS_perf:-SKIP}
 Schema Check:     ${STAGE_STATUS_schema:-SKIP}
 Docker Build:     ${STAGE_STATUS_docker:-SKIP}
+RBAC Check:       ${STAGE_STATUS_rbac:-SKIP}
+Tier1 Ent.:       ${STAGE_STATUS_tier1:-SKIP}
 Opus Review:      $OPUS_STATUS
 
 GATE DECISION: $OVERALL_DECISION
@@ -410,44 +544,6 @@ RESULTS_EOF
 
 echo ""
 cat .claude/tmp/pipeline-results.md
-
-# ===========================================================
-# RBAC Verification (team and above)
-# ===========================================================
-
-if stage_required "rbac-check"; then
-    echo ""
-    echo "Verifying RBAC setup..."
-    RBAC_OK=true
-
-    if [[ -f "supabase/migrations/00000000000001_rbac.sql" ]]; then
-        echo "  + RBAC migration exists"
-    else
-        echo "  x RBAC migration not found"
-        RBAC_OK=false
-    fi
-
-    if [[ -f "backend/middleware/rbac.py" ]]; then
-        echo "  + RBAC middleware exists"
-    else
-        echo "  x backend/middleware/rbac.py not found"
-        RBAC_OK=false
-    fi
-
-    if [[ -f "frontend/composables/useRole.ts" ]]; then
-        echo "  + useRole composable exists"
-    else
-        echo "  x frontend/composables/useRole.ts not found"
-        RBAC_OK=false
-    fi
-
-    if $RBAC_OK; then
-        echo "  RBAC check: PASS"
-    else
-        echo "  RBAC check: WARNING — some RBAC files missing"
-    fi
-    echo ""
-fi
 
 # ===========================================================
 # Target-specific deployment (if pipeline passed)

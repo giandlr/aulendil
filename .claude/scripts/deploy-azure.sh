@@ -25,7 +25,15 @@ if [[ ! -f "$ENV_FILE" ]]; then
     echo "ERROR: $ENV_FILE not found. Run scaffold-azure-configs.sh first." >&2
     exit 1
 fi
-set -a; source "$ENV_FILE"; set +a
+# Safe env parsing — no arbitrary code execution
+while IFS='=' read -r key value; do
+    # Only accept valid env var names
+    [[ "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]] || continue
+    # Strip surrounding quotes
+    value="${value%\"}" ; value="${value#\"}"
+    value="${value%\'}" ; value="${value#\'}"
+    export "$key=$value"
+done < <(grep -E '^[A-Z_][A-Z0-9_]*=' "$ENV_FILE" | grep -v '^#')
 
 # Validate required vars
 REQUIRED_VARS=(ACR_LOGIN_SERVER ACR_NAME AZURE_RESOURCE_GROUP AZURE_CONTAINER_APP_NAME APP_SCHEMA)
@@ -71,6 +79,17 @@ fi
 # ----------------------------------------------------------
 # Step 2: Build Docker image
 # ----------------------------------------------------------
+# Pre-deploy: check database is configured if migrations exist
+if [[ -d "supabase/migrations" ]] && ls supabase/migrations/*.sql &>/dev/null; then
+    if [[ -z "${DATABASE_URL:-}" && -z "${SUPABASE_URL:-}" ]]; then
+        echo "WARNING: Migrations exist but no database connection configured."
+        if [[ "$ENVIRONMENT" == "production" ]]; then
+            echo "ERROR: Cannot deploy to production without database configuration." >&2
+            exit 1
+        fi
+    fi
+fi
+
 echo ""
 echo "Building Docker image..."
 if ! docker build -t "$IMAGE_TAG" -t "$IMAGE_LATEST" . 2>&1 | tee .claude/tmp/docker-build.log; then
@@ -84,7 +103,10 @@ echo "  Image built: $IMAGE_TAG"
 # ----------------------------------------------------------
 echo ""
 echo "Pushing to ACR..."
-az acr login --name "$ACR_NAME" 2>&1 | tee -a .claude/tmp/docker-build.log
+az acr login --name "$ACR_NAME" > /dev/null 2>&1 || {
+    echo "ERROR: ACR login failed. Check Azure CLI auth." >&2
+    exit 1
+}
 if ! docker push "$IMAGE_TAG" 2>&1 | tee -a .claude/tmp/docker-build.log; then
     echo "ERROR: Docker push failed." >&2
     exit 1
@@ -112,7 +134,14 @@ echo "  + Container App updated"
 # ----------------------------------------------------------
 echo ""
 echo "Waiting for revision to stabilise..."
-sleep 15
+for _poll_i in $(seq 1 24); do
+    REVISION_STATE=$(az containerapp revision list \
+        --name "$AZURE_CONTAINER_APP_NAME" \
+        --resource-group "$AZURE_RESOURCE_GROUP" \
+        --query "[0].properties.runningState" -o tsv 2>/dev/null || echo "")
+    [[ "$REVISION_STATE" == "Running" ]] && break
+    sleep 5
+done
 
 # Get the app URL
 DEPLOY_URL=$(az containerapp show \
@@ -163,6 +192,10 @@ if command -v jq &>/dev/null && [[ -f "$DEPLOY_STATE" ]]; then
         "$DEPLOY_STATE" 2>/dev/null)
     if [[ -n "$UPDATED" ]]; then
         echo "$UPDATED" > "$DEPLOY_STATE"
+        # Validate JSON integrity
+        if command -v jq &>/dev/null && ! jq empty "$DEPLOY_STATE" 2>/dev/null; then
+            echo "WARNING: deploy-state.json may be corrupted after update" >&2
+        fi
     fi
 fi
 
