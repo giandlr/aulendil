@@ -103,6 +103,13 @@ if ls "$SCRIPT_DIR/.claude/reviewers/"*.md &>/dev/null 2>&1; then
   echo "  + .claude/reviewers/"
 fi
 
+# .claude/refs/ (on-demand reference docs — not auto-loaded into context)
+mkdir -p "$PROJECT_DIR/.claude/refs"
+if ls "$SCRIPT_DIR/.claude/refs/"*.md &>/dev/null 2>&1; then
+  cp "$SCRIPT_DIR/.claude/refs/"*.md "$PROJECT_DIR/.claude/refs/"
+  echo "  + .claude/refs/"
+fi
+
 # .claude/deploy-gates.json and settings.json
 cp "$SCRIPT_DIR/.claude/deploy-gates.json" "$PROJECT_DIR/.claude/deploy-gates.json"
 cp "$SCRIPT_DIR/.claude/settings.json" "$PROJECT_DIR/.claude/settings.json"

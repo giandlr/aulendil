@@ -33,7 +33,7 @@ echo ""
 
 # .claude directory (agents, hooks, rules, reviewers, scripts, settings)
 mkdir -p "$PROJECT_DIR/.claude"
-for subdir in agents hooks rules reviewers scripts; do
+for subdir in agents hooks rules reviewers scripts refs; do
   if [ -d "$SCRIPT_DIR/.claude/$subdir" ]; then
     mkdir -p "$PROJECT_DIR/.claude/$subdir"
     cp -R "$SCRIPT_DIR/.claude/$subdir/"* "$PROJECT_DIR/.claude/$subdir/"

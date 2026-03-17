@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tier 1 enterprise feature check stage:** `run-pipeline.sh` now runs a `tier1-enterprise` stage at Production gate that checks for RBAC migration, GET /health endpoint, and RLS on all migration tables.
 - **Five new C# backend rule sections:** Rate limiting, Azure RLS, JWT verification detail, idempotency, and service role key handling added to `.claude/rules/csharp-backend.md`.
 - **Debug mode:** Both `run-pipeline.sh` and `bootstrap.sh` now activate `set -x` when `AULENDIL_DEBUG=1` is set.
+- **`.claude/refs/` directory:** On-demand reference docs (mobile, C#, Discovery, Deploy, Session, baseline recipes) moved out of auto-loaded rules to reduce context overhead by 35%.
 
 ### Changed
 - **RBAC check now blocks deploys:** Was warn-only after the gate decision; now fails the pipeline at Team and Production gates if RBAC files are missing. Also detects C# RBAC middleware (`backend/Middleware/RbacMiddleware.cs`).
@@ -38,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Clarification rules tightened:** Added explicit skip conditions for trivially obvious tasks; added contextual validation narration.
 - **`production-baseline.md`:** Baseline checklist and audience table brought into sync (account lockout alignment); added Tier/audience precedence explanation.
 - **`enterprise-features.md`:** Replaced all `integration-runner` references; added C# sections for rate limiting, Azure RLS, JWT, idempotency, service role key.
+- **Context optimization (-35% tokens):** Moved detailed specs (mobile, C#, Discovery, Deploy, Session, baseline recipes) from auto-loaded `.claude/rules/` to on-demand `.claude/refs/`. Rules now contain compact stubs with BLOCK rules; full specs read only when needed.
+- **`post-edit-enforce.sh` optimized:** File content cached once (was read 8 times); early exit for non-code files (md, json, css, images); path checks use bash builtins instead of grep pipes.
 
 ### Fixed
 - **Baseline checklist divergence:** Account lockout was listed as Required in the table but Offer in the checklist — both now consistent.

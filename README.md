@@ -77,8 +77,9 @@ your-project/
 │   ├── agents/                 # Specialist AI workers (tests, pipeline, review)
 │   ├── hooks/                  # Real-time guards (security, quality)
 │   │   └── lib/                # Shared hook utilities
-│   ├── rules/                  # Domain-specific standards (API, auth, DB, frontend, workflow)
+│   ├── rules/                  # Domain-specific standards (compact, auto-loaded every message)
 │   │   └── workflow.md         # Modes, commands, tech stack — updated on every framework upgrade
+│   ├── refs/                   # Detailed specs (on-demand, read only when needed)
 │   ├── reviewers/              # Opus code reviewer system prompt
 │   ├── scripts/                # Pipeline scripts (security, smoke test, review, release)
 │   ├── session/                # Crash recovery checkpoints (gitignored)
@@ -328,7 +329,7 @@ Open `manual/guide.html` in any browser for a visual walkthrough of the entire s
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
-- **v1.7** — Pipeline gate integrity (RBAC/schema checks now block deploys), security hardening, bootstrap checkpoint/resume, Docker-optional bootstrap, `preflight-check.sh`, `check-gate.sh`, debug mode, 5 new C# rule sections
+- **v1.7** — Pipeline gate integrity (RBAC/schema checks now block deploys), security hardening (parameterized SQL, safe env parsing), 35% context token reduction, optimized hooks, bootstrap checkpoint/resume, Docker-optional bootstrap, `preflight-check.sh`, `check-gate.sh`, debug mode
 - **v1.6** — Production baseline (forgot password, user management, RBAC), clarify-before-building, full test suite at every gate level (MVP/Team/Production), Opus review now at Team+, 6 bootstrap fixes (Tailwind, DevTools, env validation, app seed, SETUP.md, dev auth warning)
 - **v1.5** — Framework updater (`update.sh`), version tracking, background server logs, mandatory post-feature validation, `CLAUDE.md` reduced to project identity only (framework rules now in `.claude/rules/workflow.md` — updated automatically)
 - **v1.4** — Flutter mobile (iOS + Android) option, C# / ASP.NET Core 8 backend option, updated manual (32 slides)
