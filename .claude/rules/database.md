@@ -6,7 +6,8 @@ globs: ["backend/models/**", "supabase/migrations/**", "backend/services/**", "s
 
 - All schema changes as migrations — never ALTER/CREATE/DROP in app code
 - Never modify applied migrations — create new ones instead
-- Test with `supabase db reset` before pushing
+- Apply migrations forward with `supabase db push` — never `supabase db reset`
+- `supabase db reset` wipes all data; only run it if the user explicitly asks
 
 ## Required Columns
 

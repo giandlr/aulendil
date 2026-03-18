@@ -61,6 +61,14 @@ for pattern in "${DB_DESTRUCTIVE_PATTERNS[@]}"; do
     fi
 done
 
+# --- BLOCK: supabase db reset (wipes all data) ---
+if echo "$COMMAND" | grep -qE 'supabase\s+db\s+reset'; then
+    echo "[$TIMESTAMP] BLOCKED: supabase db reset: $COMMAND" >> "$AUDIT_LOG"
+    friendly_block_with_action \
+        "This would wipe all database data and re-seed from scratch." \
+        "I'll apply the migration forward with 'supabase db push' instead."
+fi
+
 # --- BLOCK: Force push to main/master ---
 if echo "$COMMAND" | grep -qE 'git\s+push\s+.*--force.*\s+(main|master)|git\s+push\s+-f.*\s+(main|master)'; then
     echo "[$TIMESTAMP] BLOCKED: Force push to protected branch: $COMMAND" >> "$AUDIT_LOG"

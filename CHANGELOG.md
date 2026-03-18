@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 <!-- UNRELEASED_INSERT_POINT -->
 
+## [v1.7.2] — 2026-03-18
+
+### Fixed
+- **Database data preserved during backend changes:** `.claude/rules/database.md` previously said "Test with `supabase db reset` before pushing", giving Claude implicit permission to wipe all data when testing migrations. Replaced with an explicit prohibition: always apply forward with `supabase db push`; `supabase db reset` only if the user explicitly asks.
+- **Hook blocks `supabase db reset`:** `pre-bash-guard.sh` now blocks `supabase db reset` at the hook level with a plain-English message, the same way DROP TABLE and TRUNCATE are blocked.
+
 ## [v1.7.1] — 2026-03-18
 
 ### Changed
