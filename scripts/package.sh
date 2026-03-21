@@ -32,7 +32,6 @@ cp CLAUDE.md "$STAGE/"
 cp CHANGELOG.md "$STAGE/"
 cp README.md "$STAGE/"
 cp prompt.md "$STAGE/"
-cp logo-01.svg "$STAGE/"
 
 # scripts/
 mkdir -p "$STAGE/scripts"
