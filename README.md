@@ -331,6 +331,7 @@ Open `manual/guide.html` in any browser for a visual walkthrough of the entire s
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
+- **v1.7.4** — Platform integrity audit: expanded Tier 1 pipeline checks (3→8), coverage threshold validation, mobile CI/CD, dependency scanning blocks deploys, Discovery outputs BASELINE.md + design direction, Playwright E2E in post-feature validation, migration push in deploy scripts, design/TailwindCSS rules reconciled, first-user Admin bootstrap
 - **v1.7** — Pipeline gate integrity (RBAC/schema checks now block deploys), security hardening (parameterized SQL, safe env parsing), 35% context token reduction, optimized hooks, bootstrap checkpoint/resume, Docker-optional bootstrap, `preflight-check.sh`, `check-gate.sh`, debug mode
 - **v1.6** — Production baseline (forgot password, user management, RBAC), clarify-before-building, full test suite at every gate level (MVP/Team/Production), Opus review now at Team+, 6 bootstrap fixes (Tailwind, DevTools, env validation, app seed, SETUP.md, dev auth warning)
 - **v1.5** — Framework updater (`update.sh`), version tracking, background server logs, mandatory post-feature validation, `CLAUDE.md` reduced to project identity only (framework rules now in `.claude/rules/workflow.md` — updated automatically)

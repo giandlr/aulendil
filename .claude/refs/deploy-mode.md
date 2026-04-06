@@ -11,6 +11,11 @@ Trigger: "ship it", "deploy", "go live". Write `deploy` to `.claude/mode`.
 
 **Switch anytime:** If the manager says "switch to the company server" or "switch to the cloud", update `DEPLOY_TARGET` in `.env` and confirm in plain English.
 
+**Conflict cleanup on switch:** When changing `DEPLOY_TARGET`, check for residual config from the previous target and warn:
+- Switching to Azure: if `vercel.json` or `.vercel/` exists, say: "I see leftover cloud config files. These won't affect your company server deployment, but I can clean them up if you'd like."
+- Switching to Vercel: if `.env.azure` or `Dockerfile` exists, say: "I see leftover company server config files. These won't affect your cloud deployment, but I can clean them up if you'd like."
+Do not delete automatically — ask first.
+
 ## Cloud Deploy Mode
 
 Trigger: "deploy to cloud", "make this live", "put it online", "go live" (when context implies cloud deployment, not local).

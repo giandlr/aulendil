@@ -77,6 +77,22 @@ if [[ "$BACKEND_LANGUAGE" == "csharp" ]]; then
 fi
 
 # ----------------------------------------------------------
+# Step 1b: Push migrations if pending
+# ----------------------------------------------------------
+if [[ -d "supabase/migrations" ]] && ls supabase/migrations/*.sql &>/dev/null 2>&1; then
+    if command -v supabase &>/dev/null && [[ -n "${DATABASE_URL:-}" || -n "${SUPABASE_URL:-}" ]]; then
+        echo ""
+        echo "Pushing database migrations..."
+        if supabase db push 2>&1 | tee .claude/tmp/migration-push.log; then
+            echo "  + Migrations applied"
+        else
+            echo "  WARNING: Migration push failed. Check .claude/tmp/migration-push.log" >&2
+            echo "  Continuing with deploy — database may need manual migration." >&2
+        fi
+    fi
+fi
+
+# ----------------------------------------------------------
 # Step 2: Build Docker image
 # ----------------------------------------------------------
 # Pre-deploy: check database is configured if migrations exist

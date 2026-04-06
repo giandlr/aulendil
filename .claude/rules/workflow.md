@@ -59,7 +59,9 @@
 
 Full Discovery flow (3 rounds of questions): read `.claude/refs/discovery-mode.md` before starting Discovery.
 
-**Key rules:** Round 1 asks 2 questions (app type + audience). Round 2 covers features, mobile, backend language, and the production baseline checklist. Round 3 covers data access. Never skip the baseline checklist for team/external apps. Output: `.claude/brief.md`.
+**Key rules:** Round 1 asks 2 questions (app type + audience). Round 2 covers features, mobile, backend language, design direction, and the production baseline checklist. Round 3 covers data access. Never skip the baseline checklist for team/external apps. Output: `.claude/brief.md` + `.claude/BASELINE.md`.
+
+**Scope change:** If the user expands the audience mid-project (e.g., "my team will use this now"), re-present the baseline checklist for the new audience level and update `.claude/BASELINE.md`. See `discovery-mode.md` for details.
 
 ## Build Mode
 
@@ -89,7 +91,9 @@ specified a design system, existing brand, or specific visual direction.
 
 **Production baseline:** After building the first substantive feature in a new project, check `production-baseline.md` against the audience confirmed in Discovery. If baseline features (forgot password, user management, role assignment, etc.) have not been built yet, flag them in plain English and offer to add them before moving on. Never silently skip this check.
 
-**Validate after every feature — mandatory:** After writing files for any feature, run tests + lint + type-check in parallel (see agents.md). Fix every failure before responding. Never hand back code that doesn't pass. The user should never see a broken state.
+**Pre-build environment check — mandatory:** Before writing any backend or frontend code, verify dependencies are installed (see agents.md "Pre-Build Check"). If bootstrap hasn't run or the stack doesn't match `.env`, prompt the user instead of writing code into a broken environment.
+
+**Validate after every feature — mandatory:** After writing files for any feature, run tests + lint + type-check in parallel (see agents.md). When the feature includes UI changes and Playwright is configured, also run E2E tests for the affected pages. Fix every failure before responding. Never hand back code that doesn't pass. The user should never see a broken state.
 
 **Contextual validation narration:** When validation fails, narrate in context of the current gate level. Example: "Tests are at 58% coverage — we need 60% for the MVP gate. I'm adding 2 tests to get us there." If the failure doesn't block the current gate, say so: "This lint warning won't block deployment, but let me fix it to keep things clean."
 

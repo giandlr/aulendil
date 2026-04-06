@@ -46,6 +46,37 @@ else
     echo "  PASS  No hardcoded secret patterns"
 fi
 
+# Dependency vulnerability scanning (production gate — block on high/critical)
+GATE_LEVEL="${GATE_LEVEL:-mvp}"
+
+if [[ "$GATE_LEVEL" == "production" || "$GATE_LEVEL" == "team" ]]; then
+    # npm audit
+    if [[ -f "frontend/package-lock.json" ]] && command -v npm &>/dev/null; then
+        NPM_AUDIT_OUT=$(cd frontend && npm audit --audit-level=high 2>&1)
+        NPM_EXIT=$?
+        if [[ $NPM_EXIT -ne 0 ]]; then
+            echo "  FAIL  npm audit found high/critical vulnerabilities"
+            echo "$NPM_AUDIT_OUT" | tail -5 | sed 's/^/         /'
+            ISSUES=$((ISSUES + 1))
+        else
+            echo "  PASS  npm audit clean"
+        fi
+    fi
+
+    # pip-audit
+    if [[ -f "backend/requirements.txt" ]] && command -v pip-audit &>/dev/null; then
+        PIP_AUDIT_OUT=$(pip-audit -r backend/requirements.txt 2>&1)
+        PIP_EXIT=$?
+        if [[ $PIP_EXIT -ne 0 ]]; then
+            echo "  FAIL  pip-audit found vulnerabilities"
+            echo "$PIP_AUDIT_OUT" | tail -5 | sed 's/^/         /'
+            ISSUES=$((ISSUES + 1))
+        else
+            echo "  PASS  pip-audit clean"
+        fi
+    fi
+fi
+
 echo ""
 echo "──────────────────────────────────────────"
 

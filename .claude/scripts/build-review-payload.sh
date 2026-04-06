@@ -117,6 +117,53 @@ include_file() {
         echo "*No frontend coverage data found.*"
     fi
 
+    # --- Enterprise feature context ---
+    echo ""
+    echo "## Enterprise Feature Context"
+    echo ""
+
+    # Include baseline decisions if available
+    if [[ -f ".claude/BASELINE.md" ]]; then
+        echo "### Approved Baseline Features"
+        echo ""
+        cat ".claude/BASELINE.md"
+        echo ""
+    fi
+
+    # Include brief for audience context
+    if [[ -f ".claude/brief.md" ]]; then
+        echo "### App Brief (audience and scope)"
+        echo ""
+        # Extract just the key sections, not the whole brief
+        head -30 ".claude/brief.md"
+        echo ""
+    fi
+
+    # Summarize which Tier 1 checks passed/failed in the pipeline
+    if [[ -f ".claude/tmp/tier1-results.json" ]]; then
+        include_file ".claude/tmp/tier1-results.json" "Tier 1 Pipeline Results" 50
+    fi
+
+    # Include security scan results
+    if [[ -f ".claude/tmp/security-output.txt" ]]; then
+        echo ""
+        echo "### Security Scan Results"
+        echo ""
+        echo '```'
+        tail -30 ".claude/tmp/security-output.txt"
+        echo '```'
+    fi
+
+    # Include lint results if available
+    if [[ -f ".claude/tmp/backend-unit-output.txt" ]]; then
+        echo ""
+        echo "### Backend Test Output (last 30 lines)"
+        echo ""
+        echo '```'
+        tail -30 ".claude/tmp/backend-unit-output.txt"
+        echo '```'
+    fi
+
 } > "$PAYLOAD_FILE"
 
 echo "Review payload written to $PAYLOAD_FILE"

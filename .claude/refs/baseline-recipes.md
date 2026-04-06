@@ -60,3 +60,28 @@ the same rules. Add to account settings change-password form.
 `audit_log` table: `(id, user_id, action, table_name, record_id, old_values, new_values, ip, created_at)`.
 DB triggers on sensitive tables. Admin-only `/app/admin/audit` page with filters.
 *See enterprise-features.md → Compliance → "Audit log"*
+
+### First-User Admin Bootstrap
+The first account created in a fresh deployment must automatically get the Admin role.
+Implementation: create a Supabase database function triggered on `auth.users` insert that
+checks if `user_roles` is empty. If empty, assign the new user the Admin role.
+
+```sql
+CREATE OR REPLACE FUNCTION public.bootstrap_first_admin()
+RETURNS trigger AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.user_roles) THEN
+    INSERT INTO public.user_roles (user_id, role_id)
+    SELECT NEW.id, r.id FROM public.roles r WHERE r.name = 'admin';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created_bootstrap
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.bootstrap_first_admin();
+```
+
+Include this trigger in the RBAC migration. The dev seed user bypasses this
+(seeded directly into user_roles), but production deployments rely on it.

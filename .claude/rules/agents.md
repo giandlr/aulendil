@@ -37,10 +37,25 @@ Use Task tool aggressively — sub-agents run in parallel and cut wall-clock tim
 - `cd frontend && npm run test`
 - `cd frontend && vue-tsc --noEmit`
 - `cd frontend && npm run lint`
+- `cd frontend && npx playwright test` (when Playwright config exists and feature touches UI)
 
 **Mobile (when mobile/ exists):**
 - `cd mobile && flutter test --coverage`
 - `cd mobile && flutter analyze && dart format --set-exit-if-changed .`
+
+### Escalation
+
+If validation fails due to **infrastructure** (Docker not running, Supabase connection refused, port conflict, missing system dependency) rather than code errors, do not loop trying to fix it. Instead:
+1. Explain the infrastructure issue in plain English
+2. Tell the user what needs to be fixed in their environment
+3. Offer to re-validate once they confirm the fix
+
+### Pre-Build Check
+
+Before writing any backend or frontend code, verify the environment is ready:
+- **Python backend:** Check `backend/requirements.txt` exists AND `backend/.venv/` or site-packages contain FastAPI. If not, prompt: "Run `bash scripts/bootstrap.sh` first — the backend dependencies aren't installed yet."
+- **C# backend:** Check `backend/*.csproj` exists. If `.env` says `BACKEND_LANGUAGE=csharp` but `backend/` contains `main.py` instead of a `.csproj`, warn: "The backend is scaffolded for Python but your .env says C#. Run `bash scripts/bootstrap.sh --fresh` to re-scaffold."
+- **Frontend:** Check `frontend/node_modules/` exists. If not, prompt: "Run `bash scripts/bootstrap.sh` first — frontend dependencies aren't installed yet."
 
 ### Scope Rules
 

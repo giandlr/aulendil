@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aulendil System Architecture</title>
+<style>
+  :root {
+    --cat-entry: #1679fa;
+    --cat-context: #2ecc40;
+    --cat-mode: #ff7f00;
+    --cat-process: #8139ee;
+    --cat-enforce: #e53935;
+    --cat-output: #00897b;
+    --bg: #0f1117;
+    --surface: #181b24;
+    --text: #e8eaed;
+    --text-dim: #9aa0a6;
+    --text-label: #bdc1c6;
+    --border: #2d3139;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'SF Pro Display', -apple-system, 'Segoe UI', sans-serif;
+    overflow: auto;
+  }
+  header {
+    padding: 24px 32px 12px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  header h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
+  header .version {
+    font-size: 12px; color: var(--text-dim); background: var(--surface);
+    padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border);
+  }
+  .diagram-wrap { padding: 0 16px 32px; overflow: auto; }
+  svg text { font-family: 'SF Pro Display', -apple-system, 'Segoe UI', sans-serif; }
+  .node:hover rect { filter: brightness(1.35); cursor: pointer; }
+  .cluster:hover > rect:first-of-type { filter: brightness(1.1); }
+  .tooltip {
+    position: fixed; background: #23262f; color: var(--text); font-size: 12px;
+    padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);
+    pointer-events: none; opacity: 0; transition: opacity 0.15s; z-index: 100;
+    max-width: 360px; white-space: nowrap;
+  }
+  .tooltip.visible { opacity: 1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Aulendil System Architecture</h1>
+  <span class="version">v1.7.4</span>
+</header>
+<div class="diagram-wrap">
+<svg id="diagram" viewBox="0 0 2200 1400" width="2200" height="1400" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="arr-blue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#1679fa" opacity="0.7"/></marker>
+  <marker id="arr-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#2ecc40" opacity="0.7"/></marker>
+  <marker id="arr-amber" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#ff7f00" opacity="0.7"/></marker>
+  <marker id="arr-purple" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#8139ee" opacity="0.7"/></marker>
+  <marker id="arr-red" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#e53935" opacity="0.7"/></marker>
+  <marker id="arr-teal" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="#00897b" opacity="0.7"/></marker>
+</defs>
+
+<!-- ============================================================ -->
+<!-- CLUSTER: ENTRY (top-left)                                     -->
+<!-- ============================================================ -->
+<g class="cluster">
+  <rect x="30" y="30" width="330" height="350" rx="14" fill="#1679fa" fill-opacity="0.05" stroke="#1679fa" stroke-opacity="0.25"/>
+  <rect x="30" y="30" width="330" height="30" rx="14" fill="#1679fa" fill-opacity="0.12"/>
+  <rect x="30" y="50" width="330" height="10" fill="#1679fa" fill-opacity="0.05"/>
+  <text x="195" y="51" text-anchor="middle" fill="#1679fa" font-size="11" font-weight="700" letter-spacing="1">ENTRY</text>
+
+  <g class="node" data-tip="The non-technical manager who describes features in plain English">
+    <rect x="46" y="72" width="298" height="44" rx="7" fill="#1679fa" fill-opacity="0.1" stroke="#1679fa" stroke-opacity="0.3"/>
+    <rect x="46" y="72" width="4" height="44" rx="2" fill="#1679fa"/>
+    <text x="66" y="91" fill="var(--text)" font-size="12" font-weight="600">Manager</text>
+    <text x="66" y="107" fill="var(--text-dim)" font-size="10">Operator — plain English prompts</text>
+  </g>
+  <g class="node" data-tip="Active Claude Code session — Sonnet 4.6 runtime that orchestrates everything">
+    <rect x="46" y="126" width="298" height="44" rx="7" fill="#1679fa" fill-opacity="0.1" stroke="#1679fa" stroke-opacity="0.3"/>
+    <rect x="46" y="126" width="4" height="44" rx="2" fill="#1679fa"/>
+    <text x="66" y="145" fill="var(--text)" font-size="12" font-weight="600">Claude Code Session</text>
+    <text x="66" y="161" fill="var(--text-dim)" font-size="10">Sonnet 4.6 agent runtime</text>
+  </g>
+  <g class="node" data-tip="~/.claude/CLAUDE.md — security philosophy, code quality, test-writing philosophy">
+    <rect x="46" y="180" width="298" height="38" rx="7" fill="#1679fa" fill-opacity="0.1" stroke="#1679fa" stroke-opacity="0.3"/>
+    <rect x="46" y="180" width="4" height="38" rx="2" fill="#1679fa"/>
+    <text x="66" y="197" fill="var(--text)" font-size="11" font-weight="500">Global Instructions</text>
+    <text x="66" y="211" fill="var(--text-dim)" font-size="9">~/.claude/CLAUDE.md</text>
+  </g>
+  <g class="node" data-tip="./CLAUDE.md — app name, description, project-specific overrides">
+    <rect x="46" y="228" width="298" height="38" rx="7" fill="#1679fa" fill-opacity="0.1" stroke="#1679fa" stroke-opacity="0.3"/>
+    <rect x="46" y="228" width="4" height="38" rx="2" fill="#1679fa"/>
+    <text x="66" y="245" fill="var(--text)" font-size="11" font-weight="500">Project Instructions</text>
+    <text x="66" y="259" fill="var(--text-dim)" font-size="9">./CLAUDE.md — [APP_NAME]</text>
+  </g>
+  <g class="node" data-tip=".claude/settings.json — defines 5 hook bindings (PreToolUse, PostToolUse, Stop events)">
+    <rect x="46" y="276" width="298" height="38" rx="7" fill="#1679fa" fill-opacity="0.1" stroke="#1679fa" stroke-opacity="0.3"/>
+    <rect x="46" y="276" width="4" height="38" rx="2" fill="#1679fa"/>
+    <text x="66" y="293" fill="var(--text)" font-size="11" font-weight="500">Hook Registry</text>
+    <text x="66" y="307" fill="var(--text-dim)" font-size="9">.claude/settings.json — 5 hook bindings</text>
+  </g>
+  <g class="node" data-tip="Persistent memory — user profile, feedback, project context, references across sessions">
+    <rect x="46" y="324" width="298" height="38" rx="7" fill="#1679fa" fill-opacity="0.1" stroke="#1679fa" stroke-opacity="0.3"/>
+    <rect x="46" y="324" width="4" height="38" rx="2" fill="#1679fa"/>
+    <text x="66" y="341" fill="var(--text)" font-size="11" font-weight="500">Persistent Memory</text>
+    <text x="66" y="355" fill="var(--text-dim)" font-size="9">.claude/projects/*/memory/</text>
+  </g>
+</g>
+
+<!-- ============================================================ -->
+<!-- CLUSTER: CONTEXT — RULES (bottom-left)                        -->
+<!-- ============================================================ -->
+<g class="cluster">
+  <rect x="30" y="430" width="380" height="470" rx="14" fill="#2ecc40" fill-opacity="0.05" stroke="#2ecc40" stroke-opacity="0.25"/>
+  <rect x="30" y="430" width="380" height="30" rx="14" fill="#2ecc40" fill-opacity="0.12"/>
+  <rect x="30" y="450" width="380" height="10" fill="#2ecc40" fill-opacity="0.05"/>
+  <text x="220" y="451" text-anchor="middle" fill="#2ecc40" font-size="11" font-weight="700" letter-spacing="1">ALWAYS-ON RULES — .claude/rules/</text>
+
+  <!-- Left column -->
+  <g class="node" data-tip=".claude/rules/workflow.md — tech stack, directory structure, modes, commands, definition of done">
+    <rect x="46" y="472" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="56" y="487" fill="var(--text)" font-size="10" font-weight="600">workflow.md</text>
+    <text x="56" y="499" fill="var(--text-dim)" font-size="8">Master — stack, modes</text>
+  </g>
+  <g class="node" data-tip=".claude/rules/auth.md — JWT, RBAC, Azure OAuth2 Proxy, session management, password security">
+    <rect x="46" y="514" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="56" y="529" fill="var(--text)" font-size="10" font-weight="500">auth.md</text>
+    <text x="56" y="541" fill="var(--text-dim)" font-size="8">JWT, RBAC, OAuth2</text>
+  </g>
+  <g class="node" data-tip=".claude/rules/api.md — response envelope, pagination, rate limiting, HTTP status codes">
+    <rect x="46" y="556" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="56" y="571" fill="var(--text)" font-size="10" font-weight="500">api.md</text>
+    <text x="56" y="583" fill="var(--text-dim)" font-size="8">Envelope, pagination</text>
+  </g>
+  <g class="node" data-tip=".claude/rules/database.md — migrations only, RLS, soft deletes, required columns, indexes, N+1">
+    <rect x="46" y="598" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="56" y="613" fill="var(--text)" font-size="10" font-weight="500">database.md</text>
+    <text x="56" y="625" fill="var(--text-dim)" font-size="8">RLS, soft deletes</text>
+  </g>
+  <g class="node" data-tip=".claude/rules/frontend.md — design principles, service layer, Pinia, accessibility, TailwindCSS">
+    <rect x="46" y="640" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="56" y="655" fill="var(--text)" font-size="10" font-weight="500">frontend.md</text>
+    <text x="56" y="667" fill="var(--text-dim)" font-size="8">Design, services, a11y</text>
+  </g>
+  <!-- Right column -->
+  <g class="node" data-tip=".claude/rules/production-baseline.md — 4 roles, feature checklist by audience, baseline tracking">
+    <rect x="226" y="472" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="236" y="487" fill="var(--text)" font-size="10" font-weight="600">baseline.md</text>
+    <text x="236" y="499" fill="var(--text-dim)" font-size="8">4 roles, checklist</text>
+  </g>
+  <g class="node" data-tip=".claude/rules/agents.md — parallelization rules, validation commands, sub-agent scoping">
+    <rect x="226" y="514" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="236" y="529" fill="var(--text)" font-size="10" font-weight="500">agents.md</text>
+    <text x="236" y="541" fill="var(--text-dim)" font-size="8">Parallel work rules</text>
+  </g>
+  <g class="node" data-tip=".claude/rules/mobile.md — Flutter, Riverpod, service layer isolation, go_router">
+    <rect x="226" y="556" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="236" y="571" fill="var(--text)" font-size="10" font-weight="500">mobile.md</text>
+    <text x="236" y="583" fill="var(--text-dim)" font-size="8">Flutter / Riverpod</text>
+  </g>
+  <g class="node" data-tip=".claude/rules/csharp-backend.md — ASP.NET Core 8, EF Core, parameterized SQL, xUnit">
+    <rect x="226" y="598" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="236" y="613" fill="var(--text)" font-size="10" font-weight="500">csharp-backend.md</text>
+    <text x="236" y="625" fill="var(--text-dim)" font-size="8">ASP.NET Core / EF</text>
+  </g>
+  <g class="node" data-tip=".claude/rules/team-isolation.md — Azure schema isolation, storage isolation per app">
+    <rect x="226" y="640" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="236" y="655" fill="var(--text)" font-size="10" font-weight="500">team-isolation.md</text>
+    <text x="236" y="667" fill="var(--text-dim)" font-size="8">Azure schema isolation</text>
+  </g>
+
+  <text x="50" y="698" fill="var(--text-dim)" font-size="9" font-style="italic">Auto-injected into every Claude message</text>
+
+  <!-- Bottom items -->
+  <g class="node" data-tip="4 default roles: Admin, Manager, Member, Viewer — first account gets Admin">
+    <rect x="46" y="712" width="348" height="30" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="56" y="731" fill="var(--text)" font-size="10" font-weight="500">Default Roles: Admin | Manager | Member | Viewer</text>
+  </g>
+  <g class="node" data-tip="docs/enterprise-features.md — Tier 1 (pipeline blocks) + Tier 2 (Opus advisory), 40+ features">
+    <rect x="46" y="750" width="348" height="30" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="56" y="769" fill="var(--text)" font-size="10" font-weight="500">Enterprise Features — Tier 1 (block) + Tier 2 (advisory)</text>
+  </g>
+  <g class="node" data-tip="docs/tech-stack.md — single source of truth for all stack decisions">
+    <rect x="46" y="788" width="168" height="30" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="56" y="807" fill="var(--text)" font-size="10" font-weight="500">tech-stack.md</text>
+  </g>
+  <g class="node" data-tip=".claude/deploy-gates.json — MVP, Team, Production gate definitions with coverage thresholds">
+    <rect x="226" y="788" width="168" height="30" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="236" y="807" fill="var(--text)" font-size="10" font-weight="500">deploy-gates.json</text>
+  </g>
+
+  <g class="node" data-tip=".claude/BASELINE.md — persistent checklist of approved baseline features, checked off as built">
+    <rect x="46" y="826" width="168" height="30" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="56" y="845" fill="var(--text)" font-size="10" font-weight="500">BASELINE.md</text>
+  </g>
+  <g class="node" data-tip=".claude/brief.md — Discovery output: app name, features, data model, access rules, out-of-scope">
+    <rect x="226" y="826" width="168" height="30" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="236" y="845" fill="var(--text)" font-size="10" font-weight="500">brief.md</text>
+  </g>
+</g>
+
+<!-- ============================================================ -->
+<!-- CLUSTER: ON-DEMAND REFS (below rules)                         -->
+<!-- ============================================================ -->
+<g class="cluster">
+  <rect x="30" y="950" width="380" height="260" rx="14" fill="#2ecc40" fill-opacity="0.05" stroke="#2ecc40" stroke-opacity="0.2"/>
+  <rect x="30" y="950" width="380" height="30" rx="14" fill="#2ecc40" fill-opacity="0.1"/>
+  <rect x="30" y="970" width="380" height="10" fill="#2ecc40" fill-opacity="0.05"/>
+  <text x="220" y="971" text-anchor="middle" fill="#2ecc40" font-size="11" font-weight="700" letter-spacing="1">ON-DEMAND REFS — .claude/refs/</text>
+
+  <g class="node" data-tip=".claude/refs/discovery-mode.md — 3 rounds of questions, baseline checklist, output brief.md">
+    <rect x="46" y="990" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="56" y="1005" fill="var(--text)" font-size="10" font-weight="500">discovery-mode.md</text>
+    <text x="56" y="1017" fill="var(--text-dim)" font-size="8">3-round Q&amp;A</text>
+  </g>
+  <g class="node" data-tip=".claude/refs/deploy-mode.md — target discovery, gate selection, deployment paths">
+    <rect x="226" y="990" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="236" y="1005" fill="var(--text)" font-size="10" font-weight="500">deploy-mode.md</text>
+    <text x="236" y="1017" fill="var(--text-dim)" font-size="8">Target + gate flow</text>
+  </g>
+  <g class="node" data-tip=".claude/refs/session-lifecycle.md — checkpoint logic, resume, crash recovery">
+    <rect x="46" y="1032" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="56" y="1047" fill="var(--text)" font-size="10" font-weight="500">session-lifecycle.md</text>
+    <text x="56" y="1059" fill="var(--text-dim)" font-size="8">Checkpoints, recovery</text>
+  </g>
+  <g class="node" data-tip=".claude/refs/baseline-recipes.md — implementation patterns for all baseline features">
+    <rect x="226" y="1032" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="236" y="1047" fill="var(--text)" font-size="10" font-weight="500">baseline-recipes.md</text>
+    <text x="236" y="1059" fill="var(--text-dim)" font-size="8">Build patterns</text>
+  </g>
+  <g class="node" data-tip=".claude/refs/csharp-backend.md — full ASP.NET Core 8 spec, EF Core, middleware, DI">
+    <rect x="46" y="1074" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="56" y="1089" fill="var(--text)" font-size="10" font-weight="500">csharp-backend.md</text>
+    <text x="56" y="1101" fill="var(--text-dim)" font-size="8">Full C# spec</text>
+  </g>
+  <g class="node" data-tip=".claude/refs/mobile.md — full Flutter spec, Riverpod, supabase_flutter, feature modules">
+    <rect x="226" y="1074" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="236" y="1089" fill="var(--text)" font-size="10" font-weight="500">mobile.md</text>
+    <text x="236" y="1101" fill="var(--text-dim)" font-size="8">Full Flutter spec</text>
+  </g>
+
+  <text x="50" y="1130" fill="var(--text-dim)" font-size="9" font-style="italic">Read only when relevant flow is active</text>
+
+  <g class="node" data-tip=".claude/reviewers/opus-system-prompt.md — isolated Opus 4.6 code reviewer, zero session context">
+    <rect x="46" y="1144" width="348" height="30" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
+    <text x="56" y="1163" fill="var(--text)" font-size="10" font-weight="600">Opus Reviewer Prompt — isolated Opus 4.6, zero context</text>
+  </g>
+  <g class="node" data-tip=".claude/status.md — project dashboard showing completed/pending baseline and core features">
+    <rect x="46" y="1182" width="348" height="22" rx="6" fill="#2ecc40" fill-opacity="0.06" stroke="#2ecc40" stroke-opacity="0.15"/>
+    <text x="56" y="1197" fill="var(--text-dim)" font-size="10">status.md — project dashboard</text>
+  </g>
+</g>
+
+
+<!-- ============================================================ -->
+<!-- CLUSTER: MODE (center-top)                                    -->
+<!-- ============================================================ -->
+<g class="cluster">
+  <rect x="460" y="30" width="310" height="168" rx="14" fill="#ff7f00" fill-opacity="0.05" stroke="#ff7f00" stroke-opacity="0.25"/>
+  <rect x="460" y="30" width="310" height="30" rx="14" fill="#ff7f00" fill-opacity="0.12"/>
+  <rect x="460" y="50" width="310" height="10" fill="#ff7f00" fill-opacity="0.05"/>
+  <text x="615" y="51" text-anchor="middle" fill="#ff7f00" font-size="11" font-weight="700" letter-spacing="1">MODE SYSTEM</text>
+
+  <g class="node" data-tip=".claude/mode — single file controls hook strictness: BUILD (permissive), DEPLOY (strict), DISCOVERY (Q&A)">
+    <rect x="476" y="72" width="278" height="44" rx="7" fill="#ff7f00" fill-opacity="0.1" stroke="#ff7f00" stroke-opacity="0.3"/>
+    <rect x="476" y="72" width="4" height="44" rx="2" fill="#ff7f00"/>
+    <text x="496" y="91" fill="var(--text)" font-size="12" font-weight="600">Mode File</text>
+    <text x="496" y="107" fill="var(--text-dim)" font-size="9">.claude/mode — controls all strictness</text>
+  </g>
+
+  <!-- Mode badges -->
+  <rect x="480" y="128" width="66" height="22" rx="11" fill="#2ecc40" fill-opacity="0.2" stroke="#2ecc40" stroke-opacity="0.4"/>
+  <text x="513" y="143" text-anchor="middle" fill="#2ecc40" font-size="10" font-weight="600">BUILD</text>
+  <rect x="556" y="128" width="72" height="22" rx="11" fill="#e53935" fill-opacity="0.2" stroke="#e53935" stroke-opacity="0.4"/>
+  <text x="592" y="143" text-anchor="middle" fill="#e53935" font-size="10" font-weight="600">DEPLOY</text>
+  <rect x="638" y="128" width="90" height="22" rx="11" fill="#8139ee" fill-opacity="0.2" stroke="#8139ee" stroke-opacity="0.4"/>
+  <text x="683" y="143" text-anchor="middle" fill="#8139ee" font-size="10" font-weight="600">DISCOVERY</text>
+
+  <text x="480" y="175" fill="var(--text-dim)" font-size="9" font-style="italic">Hooks + agents read mode for behavior</text>
+</g>
+
+<!-- ============================================================ -->
+<!-- CLUSTER: SESSION (below mode)                                 -->
+<!-- ============================================================ -->
+<g class="cluster">
+  <rect x="460" y="248" width="310" height="325" rx="14" fill="#ff7f00" fill-opacity="0.05" stroke="#ff7f00" stroke-opacity="0.25"/>
+  <rect x="460" y="248" width="310" height="30" rx="14" fill="#ff7f00" fill-opacity="0.12"/>
+  <rect x="460" y="268" width="310" height="10" fill="#ff7f00" fill-opacity="0.05"/>
+  <text x="615" y="269" text-anchor="middle" fill="#ff7f00" font-size="11" font-weight="700" letter-spacing="1">SESSION LIFECYCLE</text>
+
+  <g class="node" data-tip=".claude/session/latest.json — checkpoint: status, task, files_modified, git_branch, timestamp">
+    <rect x="476" y="290" width="278" height="38" rx="7" fill="#ff7f00" fill-opacity="0.1" stroke="#ff7f00" stroke-opacity="0.2"/>
+    <text x="486" y="307" fill="var(--text)" font-size="11" font-weight="500">Session Checkpoint</text>
+    <text x="486" y="321" fill="var(--text-dim)" font-size="9">latest.json — status, files, branch</text>
+  </g>
+  <g class="node" data-tip=".claude/session/file-log.txt — append-only log of every file modified, used for crash recovery">
+    <rect x="476" y="338" width="278" height="38" rx="7" fill="#ff7f00" fill-opacity="0.1" stroke="#ff7f00" stroke-opacity="0.2"/>
+    <text x="486" y="355" fill="var(--text)" font-size="11" font-weight="500">File Log</text>
+    <text x="486" y="369" fill="var(--text-dim)" font-size="9">file-log.txt — append-only changes</text>
+  </g>
+  <g class="node" data-tip=".claude/audit.log — timestamped record of all hook checks, blocks, and warnings">
+    <rect x="476" y="386" width="278" height="38" rx="7" fill="#ff7f00" fill-opacity="0.1" stroke="#ff7f00" stroke-opacity="0.2"/>
+    <text x="486" y="403" fill="var(--text)" font-size="11" font-weight="500">Audit Log</text>
+    <text x="486" y="417" fill="var(--text-dim)" font-size="9">audit.log — hook decisions trail</text>
+  </g>
+  <g class="node" data-tip="Crash recovery: reads file-log + git status, offers resume or commit of uncommitted work">
+    <rect x="476" y="434" width="278" height="38" rx="7" fill="#ff7f00" fill-opacity="0.1" stroke="#ff7f00" stroke-opacity="0.2"/>
+    <text x="486" y="451" fill="var(--text)" font-size="11" font-weight="500">Crash Recovery</text>
+    <text x="486" y="465" fill="var(--text-dim)" font-size="9">Reads logs + git status, offers resume</text>
+  </g>
+  <g class="node" data-tip="scripts/bootstrap.sh — 1600+ lines, scaffolds entire project in one command, 5 phases with resume">
+    <rect x="476" y="482" width="278" height="38" rx="7" fill="#ff7f00" fill-opacity="0.1" stroke="#ff7f00" stroke-opacity="0.2"/>
+    <text x="486" y="499" fill="var(--text)" font-size="11" font-weight="500">Bootstrap</text>
+    <text x="486" y="513" fill="var(--text-dim)" font-size="9">scripts/bootstrap.sh — 1600+ lines</text>
+  </g>
+  <g class="node" data-tip=".claude/hooks/lib/mode.sh — get_mode(), friendly_block(), log_audit() shared hook utilities">
+    <rect x="476" y="530" width="278" height="30" rx="7" fill="#ff7f00" fill-opacity="0.08" stroke="#ff7f00" stroke-opacity="0.15"/>
+    <text x="486" y="549" fill="var(--text)" font-size="10" font-weight="500">lib/mode.sh — shared hook utilities</text>
+  </g>
+</g>
+
+<!-- ============================================================ -->
+<!-- CLUSTER: DISCOVERY FLOW (top-center-right)                    -->
+<!-- ============================================================ -->
+<g class="cluster">
+  <rect x="850" y="30" width="370" height="260" rx="14" fill="#8139ee" fill-opacity="0.05" stroke="#8139ee" stroke-opacity="0.25"/>
+  <rect x="850" y="30" width="370" height="30" rx="14" fill="#8139ee" fill-opacity="0.12"/>
+  <rect x="850" y="50" width="370" height="10" fill="#8139ee" fill-opacity="0.05"/>
+  <text x="1035" y="51" text-anchor="middle" fill="#8139ee" font-size="11" font-weight="700" letter-spacing="1">DISCOVERY FLOW</text>
+
+  <g class="node" data-tip="Round 1: What kind of app? + Who will use it? (just me, team, team+external)">
+    <rect x="866" y="72" width="338" height="36" rx="7" fill="#8139ee" fill-opacity="0.08" stroke="#8139ee" stroke-opacity="0.2"/>
+    <text x="876" y="88" fill="var(--text)" font-size="11" font-weight="500">Round 1 — App Type + Audience</text>
+    <text x="876" y="101" fill="var(--text-dim)" font-size="9">2 questions via AskUserQuestion</text>
+  </g>
+  <g class="node" data-tip="Round 2: Core features, mobile? (+ follow-up), backend language, design direction, mandatory baseline checklist">
+    <rect x="866" y="116" width="338" height="42" rx="7" fill="#8139ee" fill-opacity="0.08" stroke="#8139ee" stroke-opacity="0.2"/>
+    <text x="876" y="134" fill="var(--text)" font-size="11" font-weight="500">Round 2 — Features + Design + Baseline</text>
+    <text x="876" y="150" fill="var(--text-dim)" font-size="9">Mobile? Backend? Design? + baseline checklist</text>
+  </g>
+  <g class="node" data-tip="Round 3: Data access pattern (everyone sees everything, own only, role-based)">
+    <rect x="866" y="166" width="338" height="36" rx="7" fill="#8139ee" fill-opacity="0.08" stroke="#8139ee" stroke-opacity="0.2"/>
+    <text x="876" y="182" fill="var(--text)" font-size="11" font-weight="500">Round 3 — Data Access Pattern</text>
+    <text x="876" y="195" fill="var(--text-dim)" font-size="9">Everyone | own only | role-based</text>
+  </g>
+  <g class="node" data-tip="Output: .claude/brief.md + .claude/BASELINE.md — app spec, features, design direction + baseline checklist">
+    <rect x="866" y="210" width="338" height="36" rx="7" fill="#8139ee" fill-opacity="0.12" stroke="#8139ee" stroke-opacity="0.35"/>
+    <text x="876" y="226" fill="var(--text)" font-size="11" font-weight="600">Output: brief.md + BASELINE.md</text>
+    <text x="876" y="239" fill="var(--text-dim)" font-size="9">App spec, design direction, baseline checklist</text>
+  </g>
+  <text x="870" y="275" fill="var(--text-dim)" font-size="9" font-style="italic">Updates CLAUDE.md, sets mode = build</text>
+</g>
+
+<!-- ============================================================ -->
+<!-- CLUSTER: BUILD FLOW (center-right)                            -->
+<!-- ============================================================ -->
+<g class="cluster">
+  <rect x="850" y="330" width="370" height="370" rx="14" fill="#8139ee" fill-opacity="0.05" stroke="#8139ee" stroke-opacity="0.25"/>
+  <rect x="850" y="330" width="370" height="30" rx="14" fill="#8139ee" fill-opacity="0.12"/>
+  <rect x="850" y="350" width="370" height="10" fill="#8139ee" fill-opacity="0.05"/>
+  <text x="1035" y="351" text-anchor="middle" fill="#8139ee" font-size="11" font-weight="700" letter-spacing="1">BUILD FLOW</text>
+
+  <g class="node" data-tip="1-2 focused questions via AskUserQuestion to confirm scope, behavior, edge cases">
+    <rect x="866" y="372" width="338" height="34" rx="7" fill="#8139ee" fill-opacity="0.08" stroke="#8139ee" stroke-opacity="0.2"/>
+    <text x="876" y="388" fill="var(--text)" font-size="11" font-weight="500">Clarify — AskUserQuestion</text>
+    <text x="876" y="400" fill="var(--text-dim)" font-size="9">Scope, behavior, edge cases</text>
+  </g>
+  <g class="node" data-tip="Identify files, split into backend agent (route+service+model+test) + frontend agent in parallel">
+    <rect x="866" y="414" width="338" height="34" rx="7" fill="#8139ee" fill-opacity="0.08" stroke="#8139ee" stroke-opacity="0.2"/>
+    <text x="876" y="430" fill="var(--text)" font-size="11" font-weight="500">Plan — Split by Layer</text>
+    <text x="876" y="442" fill="var(--text-dim)" font-size="9">Backend + frontend agents in parallel</text>
+  </g>
+  <g class="node" data-tip="Write code across all layers — every Write/Edit triggers pre-write-guard + post-edit-enforce hooks">
+    <rect x="866" y="456" width="338" height="40" rx="7" fill="#8139ee" fill-opacity="0.1" stroke="#8139ee" stroke-opacity="0.3"/>
+    <text x="876" y="474" fill="var(--text)" font-size="11" font-weight="600">Write Code</text>
+    <text x="876" y="489" fill="var(--text-dim)" font-size="9">Every write fires hooks</text>
+  </g>
+  <g class="node" data-tip="Run pytest, vitest, vue-tsc, eslint, ruff, mypy, Playwright e2e, flutter test in parallel — mandatory after every feature">
+    <rect x="866" y="504" width="338" height="40" rx="7" fill="#8139ee" fill-opacity="0.1" stroke="#8139ee" stroke-opacity="0.3"/>
+    <text x="876" y="522" fill="var(--text)" font-size="11" font-weight="600">Validate in Parallel</text>
+    <text x="876" y="537" fill="var(--text-dim)" font-size="9">pytest | vitest | vue-tsc | Playwright | flutter test</text>
+  </g>
+  <g class="node" data-tip="If failures: spawn agents per failure, fix, re-validate until all pass">
+    <rect x="866" y="552" width="338" height="34" rx="7" fill="#8139ee" fill-opacity="0.08" stroke="#8139ee" stroke-opacity="0.2"/>
+    <text x="876" y="568" fill="var(--text)" font-size="11" font-weight="500">Fix + Re-validate Loop</text>
+    <text x="876" y="580" fill="var(--text-dim)" font-size="9">Iterate until clean — never hand back broken code</text>
+  </g>
+  <g class="node" data-tip="Plain English narration: one sentence per layer, no tool names, auto-includes loading/error/empty states">
+    <rect x="866" y="594" width="338" height="34" rx="7" fill="#8139ee" fill-opacity="0.08" stroke="#8139ee" stroke-opacity="0.2"/>
+    <text x="876" y="610" fill="var(--text)" font-size="11" font-weight="500">Narrate + Auto-Includes</text>
+    <text x="876" y="622" fill="var(--text-dim)" font-size="9">Loading states, rate limits, RLS, tests — always</text>
+  </g>
+
+  <text x="870" y="685" fill="var(--text-dim)" font-size="9" font-style="italic">Never responds until all validations pass</text>
+</g>
+
+<!-- ============================================================ -->
+<!-- CLUSTER: DEPLOY FLOW (bottom-center-right)                    -->
+<!-- ============================================================ -->
+<g class="cluster">
+  <rect x="850" y="740" width="370" height="240" rx="14" fill="#8139ee" fill-opacity="0.05" stroke="#8139ee" stroke-opacity="0.25"/>
+  <rect x="850" y="740" width="370" height="30" rx="14" fill="#8139ee" fill-opacity="0.12"/>
+  <rect x="850" y="760" width="370" height="10" fill="#8139ee" fill-opacity="0.05"/>
+  <text x="1035" y="761" text-anchor="middle" fill="#8139ee" font-size="11" font-weight="700" letter-spacing="1">DEPLOY FLOW — "ship it"</text>
+
+  <g class="node" data-tip="Ask: company server (Azure) or cloud (Vercel)? Set DEPLOY_TARGET in .env">
+    <rect x="866" y="782" width="338" height="34" rx="7" fill="#8139ee" fill-opacity="0.08" stroke="#8139ee" stroke-opacity="0.2"/>
+    <text x="876" y="798" fill="var(--text)" font-size="11" font-weight="500">Set DEPLOY_TARGET</text>
+    <text x="876" y="810" fill="var(--text-dim)" font-size="9">Cloud (Vercel) or Company Server (Azure)</text>
+  </g>
+  <g class="node" data-tip="Ask gate level: MVP (just me), Team (colleagues), Production (external users)">
+    <rect x="866" y="824" width="338" height="34" rx="7" fill="#8139ee" fill-opacity="0.08" stroke="#8139ee" stroke-opacity="0.2"/>
+    <text x="876" y="840" fill="var(--text)" font-size="11" font-weight="500">Choose Gate Level</text>
+    <text x="876" y="852" fill="var(--text-dim)" font-size="9">MVP | Team | Production</text>
+  </g>
+  <g class="node" data-tip="bash .claude/scripts/run-pipeline.sh <gate> — master orchestrator, spawns 12+ parallel stages including mobile + coverage validation">
+    <rect x="866" y="866" width="338" height="40" rx="7" fill="#8139ee" fill-opacity="0.12" stroke="#8139ee" stroke-opacity="0.35"/>
+    <text x="876" y="884" fill="var(--text)" font-size="11" font-weight="600">run-pipeline.sh</text>
+    <text x="876" y="899" fill="var(--text-dim)" font-size="9">Master orchestrator — 12+ parallel stages</text>
+  </g>
+  <g class="node" data-tip="Gate decision: all pass → PIPELINE PASSED + ship, any fail → PIPELINE FAILED + fix guidance">
+    <rect x="866" y="914" width="338" height="40" rx="7" fill="#8139ee" fill-opacity="0.08" stroke="#8139ee" stroke-opacity="0.2"/>
+    <text x="876" y="932" fill="var(--text)" font-size="11" font-weight="600">Gate Decision</text>
+    <text x="876" y="947" fill="var(--text-dim)" font-size="9">PASSED = ship | FAILED = fix + re-run</text>
+  </g>
+</g>
+
+
+<!-- ============================================================ -->
+<!-- CLUSTER: HOOKS (right-top)                                    -->
+<!-- ============================================================ -->
+<g class="cluster">
+  <rect x="1300" y="30" width="400" height="290" rx="14" fill="#e53935" fill-opacity="0.05" stroke="#e53935" stroke-opacity="0.25"/>
+  <rect x="1300" y="30" width="400" height="30" rx="14" fill="#e53935" fill-opacity="0.12"/>
+  <rect x="1300" y="50" width="400" height="10" fill="#e53935" fill-opacity="0.05"/>
+  <text x="1500" y="51" text-anchor="middle" fill="#e53935" font-size="11" font-weight="700" letter-spacing="1">HOOK SYSTEM — .claude/hooks/</text>
+
+  <g class="node" data-tip="PreToolUse Write|Edit → pre-write-guard.sh — blocks hardcoded secrets, SQL injection, eval(), .env writes">
+    <rect x="1316" y="72" width="368" height="36" rx="7" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
+    <text x="1326" y="88" fill="var(--text)" font-size="10" font-weight="500">PreToolUse Write|Edit</text>
+    <text x="1326" y="101" fill="var(--text-dim)" font-size="9">pre-write-guard.sh — blocks secrets, SQL injection</text>
+  </g>
+  <g class="node" data-tip="PreToolUse Bash → pre-bash-guard.sh — blocks rm -rf, DROP TABLE, force push, chmod 777">
+    <rect x="1316" y="116" width="368" height="36" rx="7" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
+    <text x="1326" y="132" fill="var(--text)" font-size="10" font-weight="500">PreToolUse Bash</text>
+    <text x="1326" y="145" fill="var(--text-dim)" font-size="9">pre-bash-guard.sh — blocks rm -rf, DROP, force push</text>
+  </g>
+  <g class="node" data-tip="PostToolUse Write|Edit → post-edit-enforce.sh — 700 lines, mode-aware: BUILD warns, DEPLOY blocks">
+    <rect x="1316" y="160" width="368" height="42" rx="7" fill="#e53935" fill-opacity="0.12" stroke="#e53935" stroke-opacity="0.35"/>
+    <text x="1326" y="178" fill="var(--text)" font-size="10" font-weight="600">PostToolUse Write|Edit — MODE-AWARE</text>
+    <text x="1326" y="195" fill="#e53935" font-size="9">post-edit-enforce.sh (700 lines) BUILD: warn | DEPLOY: block</text>
+  </g>
+  <g class="node" data-tip="PostToolUse Bash → post-bash-tag-detect.sh — detects git tag v*.*.* and triggers release">
+    <rect x="1316" y="210" width="368" height="36" rx="7" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
+    <text x="1326" y="226" fill="var(--text)" font-size="10" font-weight="500">PostToolUse Bash</text>
+    <text x="1326" y="239" fill="var(--text-dim)" font-size="9">post-bash-tag-detect.sh — auto-release on tags</text>
+  </g>
+  <g class="node" data-tip="Stop → stop-final-audit.sh — BUILD: gitleaks only, DEPLOY: full audit + session checkpoint">
+    <rect x="1316" y="254" width="368" height="36" rx="7" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
+    <text x="1326" y="270" fill="var(--text)" font-size="10" font-weight="500">Stop Event</text>
+    <text x="1326" y="283" fill="var(--text-dim)" font-size="9">stop-final-audit.sh — checkpoint + security scan</text>
+  </g>
+</g>
+
+<!-- ============================================================ -->
+<!-- CLUSTER: AGENTS (right-middle)                                -->
+<!-- ============================================================ -->
+<g class="cluster">
+  <rect x="1300" y="360" width="400" height="260" rx="14" fill="#e53935" fill-opacity="0.05" stroke="#e53935" stroke-opacity="0.25"/>
+  <rect x="1300" y="360" width="400" height="30" rx="14" fill="#e53935" fill-opacity="0.12"/>
+  <rect x="1300" y="380" width="400" height="10" fill="#e53935" fill-opacity="0.05"/>
+  <text x="1500" y="381" text-anchor="middle" fill="#e53935" font-size="11" font-weight="700" letter-spacing="1">AGENT FLEET — .claude/agents/</text>
+
+  <g class="node" data-tip="pipeline-orchestrator.md — pure coordinator, spawns subagents, never writes code or reads source">
+    <rect x="1316" y="402" width="368" height="36" rx="7" fill="#e53935" fill-opacity="0.1" stroke="#e53935" stroke-opacity="0.25"/>
+    <text x="1326" y="418" fill="var(--text)" font-size="10" font-weight="600">pipeline-orchestrator.md</text>
+    <text x="1326" y="431" fill="var(--text-dim)" font-size="9">Pure coordinator — spawns subagents, reads logs</text>
+  </g>
+  <g class="node" data-tip="unit-test-runner.md — pytest --cov + vitest --coverage, reports %">
+    <rect x="1316" y="446" width="178" height="34" rx="6" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
+    <text x="1326" y="461" fill="var(--text)" font-size="10" font-weight="500">unit-test-runner</text>
+    <text x="1326" y="473" fill="var(--text-dim)" font-size="8">pytest + vitest</text>
+  </g>
+  <g class="node" data-tip="integration-runner.md — API + DB tests, auth flow, contract tests">
+    <rect x="1506" y="446" width="178" height="34" rx="6" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
+    <text x="1516" y="461" fill="var(--text)" font-size="10" font-weight="500">integration-runner</text>
+    <text x="1516" y="473" fill="var(--text-dim)" font-size="8">API + DB tests</text>
+  </g>
+  <g class="node" data-tip="ui-test-runner.md — Playwright e2e, critical user flows">
+    <rect x="1316" y="488" width="178" height="34" rx="6" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
+    <text x="1326" y="503" fill="var(--text)" font-size="10" font-weight="500">ui-test-runner</text>
+    <text x="1326" y="515" fill="var(--text-dim)" font-size="8">Playwright e2e</text>
+  </g>
+  <g class="node" data-tip="perf-runner.md — k6 load tests + Lighthouse performance audit">
+    <rect x="1506" y="488" width="178" height="34" rx="6" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
+    <text x="1516" y="503" fill="var(--text)" font-size="10" font-weight="500">perf-runner</text>
+    <text x="1516" y="515" fill="var(--text-dim)" font-size="8">k6 + Lighthouse</text>
+  </g>
+  <g class="node" data-tip="tdd-enforcer.md — BUILD: flexible order, DEPLOY production: strict Red-Green-Refactor">
+    <rect x="1316" y="530" width="368" height="34" rx="7" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
+    <text x="1326" y="546" fill="var(--text)" font-size="10" font-weight="500">tdd-enforcer — BUILD: flexible | DEPLOY: strict TDD</text>
+  </g>
+  <text x="1320" y="605" fill="var(--text-dim)" font-size="9" font-style="italic">Orchestrator spawns runners as parallel subagents</text>
+</g>
+
+<!-- ============================================================ -->
+<!-- CLUSTER: PIPELINE SCRIPTS (right-lower)                       -->
+<!-- ============================================================ -->
+<g class="cluster">
+  <rect x="1300" y="660" width="400" height="300" rx="14" fill="#e53935" fill-opacity="0.05" stroke="#e53935" stroke-opacity="0.25"/>
+  <rect x="1300" y="660" width="400" height="30" rx="14" fill="#e53935" fill-opacity="0.12"/>
+  <rect x="1300" y="680" width="400" height="10" fill="#e53935" fill-opacity="0.05"/>
+  <text x="1500" y="681" text-anchor="middle" fill="#e53935" font-size="11" font-weight="700" letter-spacing="1">PIPELINE SCRIPTS — 23 scripts</text>
+
+  <g class="node" data-tip="security-scan.sh — gitleaks, service key leak, hardcoded secrets, npm audit + pip-audit (team+ gates, blocks on high/critical)">
+    <rect x="1316" y="702" width="178" height="34" rx="6" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
+    <text x="1326" y="717" fill="var(--text)" font-size="10" font-weight="500">security-scan.sh</text>
+    <text x="1326" y="729" fill="var(--text-dim)" font-size="8">gitleaks + dep audit</text>
+  </g>
+  <g class="node" data-tip="smoke-test.sh — app starts, health endpoint, happy path works">
+    <rect x="1506" y="702" width="178" height="34" rx="6" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
+    <text x="1516" y="717" fill="var(--text)" font-size="10" font-weight="500">smoke-test.sh</text>
+    <text x="1516" y="729" fill="var(--text-dim)" font-size="8">App starts, happy path</text>
+  </g>
+  <g class="node" data-tip="invoke-opus-reviewer.sh — isolated Opus 4.6, 5-min timeout, diff + tests + enterprise context (BASELINE.md, brief.md, Tier 1 results)">
+    <rect x="1316" y="744" width="368" height="38" rx="7" fill="#e53935" fill-opacity="0.1" stroke="#e53935" stroke-opacity="0.25"/>
+    <text x="1326" y="761" fill="var(--text)" font-size="10" font-weight="600">invoke-opus-reviewer.sh</text>
+    <text x="1326" y="775" fill="var(--text-dim)" font-size="9">Isolated Opus 4.6 — diff + tests + enterprise context</text>
+  </g>
+  <g class="node" data-tip="deploy-cloud.sh (Vercel + Supabase Cloud) and deploy-azure.sh (Container Apps + OAuth2 Proxy)">
+    <rect x="1316" y="790" width="178" height="34" rx="6" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
+    <text x="1326" y="805" fill="var(--text)" font-size="10" font-weight="500">deploy-cloud.sh</text>
+    <text x="1326" y="817" fill="var(--text-dim)" font-size="8">Vercel + Supabase</text>
+  </g>
+  <g class="node" data-tip="deploy-azure.sh — Azure Container Apps + OAuth2 Proxy + schema isolation">
+    <rect x="1506" y="790" width="178" height="34" rx="6" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
+    <text x="1516" y="805" fill="var(--text)" font-size="10" font-weight="500">deploy-azure.sh</text>
+    <text x="1516" y="817" fill="var(--text-dim)" font-size="8">Azure + OAuth2</text>
+  </g>
+  <g class="node" data-tip="scaffold-cloud-configs.sh, scaffold-azure-configs.sh — generate vercel.json, Dockerfile, proxy config">
+    <rect x="1316" y="832" width="178" height="34" rx="6" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
+    <text x="1326" y="847" fill="var(--text)" font-size="10" font-weight="500">scaffold-*.sh</text>
+    <text x="1326" y="859" fill="var(--text-dim)" font-size="8">Config generators</text>
+  </g>
+  <g class="node" data-tip="setup-supabase-cloud.sh, setup-azure-db.sh — provision DB, schema isolation, app-scoped role">
+    <rect x="1506" y="832" width="178" height="34" rx="6" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
+    <text x="1516" y="847" fill="var(--text)" font-size="10" font-weight="500">setup-*.sh</text>
+    <text x="1516" y="859" fill="var(--text-dim)" font-size="8">DB + infra setup</text>
+  </g>
+  <g class="node" data-tip="tag-release, changelog, handoff-doc, preflight, check-gate, mark-deployed, and more">
+    <rect x="1316" y="874" width="368" height="30" rx="7" fill="#e53935" fill-opacity="0.06" stroke="#e53935" stroke-opacity="0.15"/>
+    <text x="1326" y="893" fill="var(--text-dim)" font-size="10">+ 8 support scripts (tag-release, changelog, handoff...)</text>
+  </g>
+
+  <text x="1320" y="945" fill="var(--text-dim)" font-size="9" font-style="italic">~4,300 lines of bash total</text>
+</g>
+
+<!-- ============================================================ -->
+<!-- CLUSTER: DEPLOY GATES (below pipeline)                        -->
+<!-- ============================================================ -->
+<g class="cluster">
+  <rect x="1300" y="1000" width="400" height="170" rx="14" fill="#e53935" fill-opacity="0.05" stroke="#e53935" stroke-opacity="0.2"/>
+  <rect x="1300" y="1000" width="400" height="30" rx="14" fill="#e53935" fill-opacity="0.1"/>
+  <rect x="1300" y="1020" width="400" height="10" fill="#e53935" fill-opacity="0.05"/>
+  <text x="1500" y="1021" text-anchor="middle" fill="#e53935" font-size="11" font-weight="700" letter-spacing="1">DEPLOY GATES — 3 levels</text>
+
+  <g class="node" data-tip="MVP: security-scan + app-starts + happy-path + unit/integration/ui tests, 60/50 coverage">
+    <rect x="1316" y="1042" width="368" height="32" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.25"/>
+    <text x="1326" y="1062" fill="#2ecc40" font-size="10" font-weight="600">MVP — security + smoke + tests (60/50)</text>
+  </g>
+  <g class="node" data-tip="Team: all MVP + opus-review + rbac-check, 60/50 coverage">
+    <rect x="1316" y="1082" width="368" height="32" rx="6" fill="#ff7f00" fill-opacity="0.08" stroke="#ff7f00" stroke-opacity="0.25"/>
+    <text x="1326" y="1102" fill="#ff7f00" font-size="10" font-weight="600">Team — + Opus review + RBAC check (60/50)</text>
+  </g>
+  <g class="node" data-tip="Production: all Team + performance + tier1-enterprise (8 checks: RBAC, rate limit, error pages, form validation, CORS, middleware) + coverage validation, 80/70 coverage">
+    <rect x="1316" y="1122" width="368" height="32" rx="6" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.25"/>
+    <text x="1326" y="1142" fill="#e53935" font-size="10" font-weight="600">Production — + perf + Tier 1 (8 checks) + mobile (80/70)</text>
+  </g>
+</g>
+
+
+<!-- ============================================================ -->
+<!-- CLUSTER: OUTPUT (far right)                                   -->
+<!-- ============================================================ -->
+<g class="cluster">
+  <rect x="1790" y="200" width="290" height="460" rx="14" fill="#00897b" fill-opacity="0.05" stroke="#00897b" stroke-opacity="0.25"/>
+  <rect x="1790" y="200" width="290" height="30" rx="14" fill="#00897b" fill-opacity="0.12"/>
+  <rect x="1790" y="220" width="290" height="10" fill="#00897b" fill-opacity="0.05"/>
+  <text x="1935" y="221" text-anchor="middle" fill="#00897b" font-size="11" font-weight="700" letter-spacing="1">GENERATED OUTPUT</text>
+
+  <g class="node" data-tip="frontend/ — Nuxt 3, Vue 3 Composition API, TypeScript, TailwindCSS, Pinia, vee-validate + zod">
+    <rect x="1806" y="244" width="258" height="44" rx="7" fill="#00897b" fill-opacity="0.1" stroke="#00897b" stroke-opacity="0.3"/>
+    <rect x="1806" y="244" width="4" height="44" rx="2" fill="#00897b"/>
+    <text x="1826" y="264" fill="var(--text)" font-size="12" font-weight="600">frontend/</text>
+    <text x="1826" y="280" fill="var(--text-dim)" font-size="10">Nuxt 3 / Vue 3 / TailwindCSS</text>
+  </g>
+  <g class="node" data-tip="backend/ — FastAPI (Python) or ASP.NET Core 8, routes/services/models/middleware/tests">
+    <rect x="1806" y="300" width="258" height="44" rx="7" fill="#00897b" fill-opacity="0.1" stroke="#00897b" stroke-opacity="0.3"/>
+    <rect x="1806" y="300" width="4" height="44" rx="2" fill="#00897b"/>
+    <text x="1826" y="320" fill="var(--text)" font-size="12" font-weight="600">backend/</text>
+    <text x="1826" y="336" fill="var(--text-dim)" font-size="10">FastAPI or ASP.NET Core 8</text>
+  </g>
+  <g class="node" data-tip="mobile/ — Flutter (optional), Riverpod state, supabase_flutter, go_router">
+    <rect x="1806" y="356" width="258" height="44" rx="7" fill="#00897b" fill-opacity="0.1" stroke="#00897b" stroke-opacity="0.3"/>
+    <rect x="1806" y="356" width="4" height="44" rx="2" fill="#00897b"/>
+    <text x="1826" y="376" fill="var(--text)" font-size="12" font-weight="600">mobile/</text>
+    <text x="1826" y="392" fill="var(--text-dim)" font-size="10">Flutter / Riverpod (optional)</text>
+  </g>
+  <g class="node" data-tip="supabase/migrations/ — SQL with RLS policies, required columns, soft deletes, indexes">
+    <rect x="1806" y="412" width="258" height="44" rx="7" fill="#00897b" fill-opacity="0.1" stroke="#00897b" stroke-opacity="0.3"/>
+    <rect x="1806" y="412" width="4" height="44" rx="2" fill="#00897b"/>
+    <text x="1826" y="432" fill="var(--text)" font-size="12" font-weight="600">supabase/migrations/</text>
+    <text x="1826" y="448" fill="var(--text-dim)" font-size="10">SQL + RLS + indexes</text>
+  </g>
+  <g class="node" data-tip="Tests alongside all code — pytest, Vitest, Playwright, xUnit, flutter_test">
+    <rect x="1806" y="468" width="258" height="44" rx="7" fill="#00897b" fill-opacity="0.1" stroke="#00897b" stroke-opacity="0.3"/>
+    <rect x="1806" y="468" width="4" height="44" rx="2" fill="#00897b"/>
+    <text x="1826" y="488" fill="var(--text)" font-size="12" font-weight="600">Tests</text>
+    <text x="1826" y="504" fill="var(--text-dim)" font-size="10">pytest | Vitest | Playwright | xUnit</text>
+  </g>
+  <g class="node" data-tip="Live deployment — Vercel (frontend + API) or Azure Container Apps (Docker + OAuth2 Proxy)">
+    <rect x="1806" y="524" width="258" height="44" rx="7" fill="#00897b" fill-opacity="0.12" stroke="#00897b" stroke-opacity="0.4"/>
+    <rect x="1806" y="524" width="4" height="44" rx="2" fill="#00897b"/>
+    <text x="1826" y="544" fill="var(--text)" font-size="12" font-weight="600">Live Deployment</text>
+    <text x="1826" y="560" fill="var(--text-dim)" font-size="10">Vercel or Azure Container Apps</text>
+  </g>
+  <g class="node" data-tip="brief.md + status.md + BASELINE.md — project planning and tracking artifacts">
+    <rect x="1806" y="580" width="258" height="38" rx="7" fill="#00897b" fill-opacity="0.08" stroke="#00897b" stroke-opacity="0.2"/>
+    <rect x="1806" y="580" width="4" height="38" rx="2" fill="#00897b"/>
+    <text x="1826" y="597" fill="var(--text)" font-size="11" font-weight="500">Project Artifacts</text>
+    <text x="1826" y="611" fill="var(--text-dim)" font-size="9">brief.md + status.md + BASELINE.md</text>
+  </g>
+</g>
+
+
+<!-- ============================================================ -->
+<!-- CONNECTIONS — routed through gaps between clusters            -->
+<!-- ============================================================ -->
+
+<!-- Entry → Mode: horizontal through gap above Session -->
+<path d="M360,110 L460,110" stroke="#1679fa" stroke-width="2" fill="none" marker-end="url(#arr-blue)" opacity="0.6"/>
+<text x="380" y="104" fill="#1679fa" font-size="8" opacity="0.7">loads mode</text>
+
+<!-- Entry → Context Rules: vertical through gap -->
+<path d="M195,380 L195,430" stroke="#2ecc40" stroke-width="2" fill="none" marker-end="url(#arr-green)" opacity="0.5"/>
+<text x="202" y="410" fill="#2ecc40" font-size="8" opacity="0.7">auto-injects rules</text>
+
+<!-- Mode → Session: vertical through gap -->
+<path d="M615,198 L615,248" stroke="#ff7f00" stroke-width="1.5" fill="none" marker-end="url(#arr-amber)" opacity="0.5"/>
+
+<!-- Mode → Discovery: horizontal through gap -->
+<path d="M770,80 L850,80" stroke="#8139ee" stroke-width="2" fill="none" marker-end="url(#arr-purple)" opacity="0.55"/>
+<text x="780" y="74" fill="#8139ee" font-size="8" opacity="0.7">DISCOVERY</text>
+
+<!-- Mode → Build: route right then down through gap -->
+<path d="M770,120 L820,120 L820,500 L850,500" stroke="#8139ee" stroke-width="2" fill="none" marker-end="url(#arr-purple)" opacity="0.55"/>
+<text x="798" y="310" fill="#8139ee" font-size="8" opacity="0.7" transform="rotate(-90 798 310)">BUILD</text>
+
+<!-- Mode → Deploy: route right then down through gap -->
+<path d="M770,150 L830,150 L830,860 L850,860" stroke="#8139ee" stroke-width="2" fill="none" marker-end="url(#arr-purple)" opacity="0.55"/>
+<text x="808" y="510" fill="#8139ee" font-size="8" opacity="0.7" transform="rotate(-90 808 510)">DEPLOY</text>
+
+<!-- Build: Write Code → Hooks: horizontal through gap -->
+<path d="M1220,476 L1260,476 L1260,180 L1300,180" stroke="#e53935" stroke-width="2.5" fill="none" marker-end="url(#arr-red)" opacity="0.6"/>
+<text x="1234" y="340" fill="#e53935" font-size="9" font-weight="500" opacity="0.8" transform="rotate(-90 1234 340)">every write fires hooks</text>
+
+<!-- Build: Validate → Agents: horizontal through gap -->
+<path d="M1220,524 L1260,524 L1260,490 L1300,490" stroke="#e53935" stroke-width="2" fill="none" marker-end="url(#arr-red)" opacity="0.5"/>
+<text x="1232" y="510" fill="#e53935" font-size="8" opacity="0.7">parallel</text>
+
+<!-- Deploy: pipeline → Pipeline Scripts: horizontal through gap -->
+<path d="M1220,886 L1260,886 L1260,770 L1300,770" stroke="#e53935" stroke-width="2" fill="none" marker-end="url(#arr-red)" opacity="0.5"/>
+<text x="1234" y="830" fill="#e53935" font-size="8" opacity="0.7">orchestrates</text>
+
+<!-- Pipeline → Gates: vertical through gap -->
+<path d="M1500,960 L1500,1000" stroke="#e53935" stroke-width="2" fill="none" marker-end="url(#arr-red)" opacity="0.5"/>
+<text x="1508" y="985" fill="#e53935" font-size="8" opacity="0.6">checks</text>
+
+<!-- Hooks → Mode (reads mode): route down through gap then left -->
+<path d="M1300,200 L1270,200 L1270,114 L770,114" stroke="#ff7f00" stroke-width="1.5" fill="none" marker-end="url(#arr-amber)" opacity="0.35" stroke-dasharray="6,3"/>
+<text x="1020" y="108" fill="#ff7f00" font-size="8" opacity="0.6">reads mode for strictness</text>
+
+<!-- Hooks → Audit Log: route left through gap above Build -->
+<path d="M1300,270 L1270,270 L1270,310 L820,310 L820,405 L770,405" stroke="#ff7f00" stroke-width="1.2" fill="none" marker-end="url(#arr-amber)" opacity="0.3" stroke-dasharray="5,3"/>
+<text x="1040" y="304" fill="#ff7f00" font-size="8" opacity="0.5">logs decisions</text>
+
+<!-- Hooks → File Log: route through gap -->
+<path d="M1300,252 L1275,252 L1275,320 L815,320 L815,357 L770,357" stroke="#ff7f00" stroke-width="1.2" fill="none" marker-end="url(#arr-amber)" opacity="0.25" stroke-dasharray="4,3"/>
+<text x="1040" y="316" fill="#ff7f00" font-size="8" opacity="0.4">appends files</text>
+
+<!-- Hook Registry → Hooks: route right along bottom of Entry, down, then right -->
+<path d="M360,295 L420,295 L420,20 L1250,20 L1250,170 L1300,170" stroke="#e53935" stroke-width="1.5" fill="none" marker-end="url(#arr-red)" opacity="0.35" stroke-dasharray="6,3"/>
+<text x="800" y="14" fill="#e53935" font-size="8" opacity="0.5">defines hook bindings</text>
+
+<!-- Context Rules → Build (auto-injected): route right along bottom -->
+<path d="M410,665 L425,665 L425,640 L840,640 L840,430 L850,430" stroke="#2ecc40" stroke-width="1.5" fill="none" marker-end="url(#arr-green)" opacity="0.35" stroke-dasharray="6,3"/>
+<text x="630" y="654" fill="#2ecc40" font-size="8" opacity="0.5">rules inform code generation</text>
+
+<!-- On-Demand Refs → Processing (read when needed): route right -->
+<path d="M410,1050 L425,1050 L425,990 L840,990 L840,800 L850,800" stroke="#2ecc40" stroke-width="1.5" fill="none" marker-end="url(#arr-green)" opacity="0.3" stroke-dasharray="6,3"/>
+<text x="630" y="984" fill="#2ecc40" font-size="8" opacity="0.5">read when needed</text>
+
+<!-- Deploy Gates Config → Gates: route right along bottom -->
+<path d="M394,818 L420,818 L420,870 L435,870 L435,1100 L1300,1100" stroke="#2ecc40" stroke-width="1.2" fill="none" marker-end="url(#arr-green)" opacity="0.25" stroke-dasharray="5,3"/>
+<text x="860" y="1094" fill="#2ecc40" font-size="8" opacity="0.4">defines requirements</text>
+
+<!-- Build → Output: route right above Hooks cluster then down -->
+<path d="M1220,620 L1250,620 L1250,640 L1770,640 L1770,430 L1790,430" stroke="#00897b" stroke-width="2" fill="none" marker-end="url(#arr-teal)" opacity="0.5"/>
+<text x="1480" y="634" fill="#00897b" font-size="9" opacity="0.7">generates</text>
+
+<!-- Deploy → Output (ships): route right below Pipeline then up -->
+<path d="M1220,934 L1250,934 L1250,970 L1770,970 L1770,546 L1790,546" stroke="#00897b" stroke-width="2" fill="none" marker-end="url(#arr-teal)" opacity="0.5"/>
+<text x="1480" y="964" fill="#00897b" font-size="9" font-weight="500" opacity="0.7">ships</text>
+
+<!-- Opus Reviewer → Gate Decision: route left from Pipeline to Deploy -->
+<path d="M1300,763 L1270,763 L1270,934 L1220,934" stroke="#8139ee" stroke-width="1.5" fill="none" marker-end="url(#arr-purple)" opacity="0.4" stroke-dasharray="5,3"/>
+<text x="1237" y="850" fill="#8139ee" font-size="8" opacity="0.6" transform="rotate(-90 1237 850)">APPROVED / CHANGES REQUIRED</text>
+
+<!-- Session ↔ Entry (resume): route left -->
+<path d="M460,450 L420,450 L420,148 L360,148" stroke="#ff7f00" stroke-width="1.5" fill="none" marker-end="url(#arr-amber)" opacity="0.3" stroke-dasharray="5,3"/>
+<text x="425" y="300" fill="#ff7f00" font-size="8" opacity="0.5" transform="rotate(-90 425 300)">resume / recover</text>
+
+
+<!-- ============================================================ -->
+<!-- LEGEND                                                        -->
+<!-- ============================================================ -->
+<g transform="translate(1790, 700)">
+  <rect x="0" y="0" width="290" height="270" rx="12" fill="var(--surface)" stroke="var(--border)"/>
+  <text x="20" y="26" fill="var(--text)" font-size="13" font-weight="600">Legend</text>
+
+  <rect x="20" y="42" width="14" height="14" rx="3" fill="#1679fa" fill-opacity="0.25" stroke="#1679fa" stroke-opacity="0.6"/>
+  <text x="42" y="54" fill="var(--text-label)" font-size="11">Entry / Operator</text>
+
+  <rect x="20" y="64" width="14" height="14" rx="3" fill="#2ecc40" fill-opacity="0.25" stroke="#2ecc40" stroke-opacity="0.6"/>
+  <text x="42" y="76" fill="var(--text-label)" font-size="11">Context / Knowledge</text>
+
+  <rect x="20" y="86" width="14" height="14" rx="3" fill="#ff7f00" fill-opacity="0.25" stroke="#ff7f00" stroke-opacity="0.6"/>
+  <text x="42" y="98" fill="var(--text-label)" font-size="11">Mode / Session State</text>
+
+  <rect x="20" y="108" width="14" height="14" rx="3" fill="#8139ee" fill-opacity="0.25" stroke="#8139ee" stroke-opacity="0.6"/>
+  <text x="42" y="120" fill="var(--text-label)" font-size="11">Processing / AI Flows</text>
+
+  <rect x="20" y="130" width="14" height="14" rx="3" fill="#e53935" fill-opacity="0.25" stroke="#e53935" stroke-opacity="0.6"/>
+  <text x="42" y="142" fill="var(--text-label)" font-size="11">Enforcement / Safety</text>
+
+  <rect x="20" y="152" width="14" height="14" rx="3" fill="#00897b" fill-opacity="0.25" stroke="#00897b" stroke-opacity="0.6"/>
+  <text x="42" y="164" fill="var(--text-label)" font-size="11">Output / Generated Code</text>
+
+  <line x1="20" y1="186" x2="56" y2="186" stroke="var(--text-dim)" stroke-width="2" opacity="0.6"/>
+  <text x="64" y="190" fill="var(--text-label)" font-size="11">Direct flow</text>
+
+  <line x1="20" y1="208" x2="56" y2="208" stroke="var(--text-dim)" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.5"/>
+  <text x="64" y="212" fill="var(--text-label)" font-size="11">On-demand / feedback</text>
+
+  <line x1="20" y1="230" x2="56" y2="230" stroke="#e53935" stroke-width="2.5" opacity="0.6"/>
+  <text x="64" y="234" fill="var(--text-label)" font-size="11">Hook interception</text>
+
+  <text x="20" y="258" fill="var(--text-dim)" font-size="9" opacity="0.5">Hover nodes for file paths</text>
+</g>
+
+<!-- Version -->
+<text x="2080" y="1380" text-anchor="end" fill="var(--text-dim)" font-size="10" opacity="0.35">Aulendil v1.7.4</text>
+
+</svg>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+<script>
+const tt = document.getElementById('tooltip');
+document.querySelectorAll('[data-tip]').forEach(el => {
+  el.addEventListener('mouseenter', () => { tt.textContent = el.getAttribute('data-tip'); tt.classList.add('visible'); });
+  el.addEventListener('mousemove', e => { tt.style.left = (e.clientX + 14) + 'px'; tt.style.top = (e.clientY + 14) + 'px'; });
+  el.addEventListener('mouseleave', () => tt.classList.remove('visible'));
+});
+</script>
+</body>
+</html>

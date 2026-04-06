@@ -242,6 +242,24 @@ for dir in components composables pages stores services types tests; do
 done
 echo "  Created: components, composables, pages, stores, services, types, tests"
 
+# Backend — detect stack mismatch on resume
+if [ -d "backend" ]; then
+    EXISTING_STACK="unknown"
+    if [ -f "backend/main.py" ] || [ -f "backend/requirements.txt" ]; then
+        EXISTING_STACK="python"
+    elif ls backend/*.csproj &>/dev/null 2>&1; then
+        EXISTING_STACK="csharp"
+    fi
+    if [ "$EXISTING_STACK" != "unknown" ] && [ "$EXISTING_STACK" != "$BACKEND_LANGUAGE" ]; then
+        echo ""
+        echo "  WARNING: backend/ is scaffolded for $EXISTING_STACK but .env says BACKEND_LANGUAGE=$BACKEND_LANGUAGE"
+        echo "  To re-scaffold, run: bash scripts/bootstrap.sh --fresh"
+        echo "  Continuing with existing $EXISTING_STACK backend."
+        echo ""
+        BACKEND_LANGUAGE="$EXISTING_STACK"
+    fi
+fi
+
 # Backend — FastAPI
 if [ ! -d "backend" ]; then
     echo "  Creating FastAPI backend..."

@@ -14,6 +14,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 <!-- UNRELEASED_INSERT_POINT -->
 
+## [v1.7.4] — 2026-04-06
+
+### Added
+- **Discovery outputs `.claude/BASELINE.md`:** Discovery now explicitly creates a persistent baseline feature checklist alongside `brief.md`. Build mode checks this file before every feature and marks items `[x]` as they are completed — the baseline tracking system that was specified but never actually generated now works.
+- **Scope change flow:** When a user expands the audience mid-project (e.g., "my team will use this now"), the baseline checklist is re-presented for the new audience level and `BASELINE.md` is updated with any newly required features.
+- **Mobile Discovery follow-up:** When mobile is selected, Discovery now asks a follow-up: "Any mobile-specific needs?" (offline support / push notifications / camera or GPS / none).
+- **Design direction in Discovery:** Discovery now asks about aesthetic preferences and offers 3 fallback directions (Modern editorial, Warm minimal, Bold industrial) when the user has no preference. Recorded in `brief.md` for consistent styling across all components.
+- **"Other" app type features:** Discovery Round 2 now provides a generic feature list (CRUD, search, file upload, notifications, reports, approval workflows, calendar) when the user picks "other" app type.
+- **Expanded Tier 1 pipeline checks:** `tier1-enterprise` stage now checks for RBAC middleware, rate limiting, error pages, form validation (vee-validate/zod), and CORS wildcard — up from 3 checks to 8.
+- **Coverage threshold validation:** Pipeline now reads coverage thresholds from `deploy-gates.json` and fails with a numeric comparison if actual coverage is below required percentage.
+- **Mobile CI/CD stage:** Pipeline now runs `flutter test` + `flutter analyze` when `mobile/` exists — previously mobile code was never validated at deploy time.
+- **Dependency vulnerability scanning in pipeline:** `npm audit` and `pip-audit` now run as part of the security scan stage at team+ gates, blocking on high/critical vulnerabilities — previously these only ran in the stop hook (which never blocked).
+- **Enterprise context in Opus review payload:** `build-review-payload.sh` now includes `BASELINE.md`, `brief.md`, Tier 1 results, security scan output, and backend test results so the Opus reviewer can advise on missing enterprise features.
+- **Migration push in deploy scripts:** `deploy-cloud.sh` and `deploy-azure.sh` now run `supabase db push` before deploying — previously apps could deploy with code referencing tables that didn't exist.
+- **First-user Admin bootstrap recipe:** `baseline-recipes.md` now includes a SQL trigger (`bootstrap_first_admin()`) that assigns Admin role to the first user when `user_roles` is empty.
+- **Pre-build environment check:** `agents.md` now requires verifying dependencies are installed before writing code. Detects stack mismatches (Python backend but `.env` says C#) and prompts for bootstrap.
+- **Escalation guidance:** When validation fails due to infrastructure (Docker not running, Supabase connection refused), agents now explain the issue and ask the user to fix the environment instead of looping.
+- **Deploy target conflict detection:** When switching `DEPLOY_TARGET`, the system now warns about residual config files from the previous target and asks before cleaning up.
+- **Playwright E2E in post-feature validation:** `agents.md` now includes `npx playwright test` in the mandatory post-feature validation commands when Playwright is configured and the feature touches UI.
+
+### Changed
+- **RBAC check searches by content, not filename:** Pipeline Tier 1 check now greps for `CREATE TABLE roles` + `CREATE TABLE user_roles` instead of checking for hardcoded filename `00000000000001_rbac.sql`.
+- **Frontend design rules reconciled with TailwindCSS:** Spatial composition and backgrounds sections rewritten to use Tailwind-achievable techniques. `<style scoped>` now explicitly allowed for effects Tailwind can't express (animations, SVG backgrounds, gradient meshes). "One unforgettable detail" replaced with concrete: "one distinctive visual element per page."
+- **Fallback design directions defined:** Three pre-built aesthetic options (Modern editorial with Playfair Display, Warm minimal with Nunito, Bold industrial with JetBrains Mono) replace the vague "pick a tone" instruction.
+
+### Fixed
+- **Bootstrap stack mismatch on resume:** Bootstrap now detects when `backend/` was scaffolded for Python but `.env` says `BACKEND_LANGUAGE=csharp` (or vice versa) and warns instead of silently skipping re-scaffold.
+
 ## [v1.7.3] — 2026-03-22
 
 ### Fixed

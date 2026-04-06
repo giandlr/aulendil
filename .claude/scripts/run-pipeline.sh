@@ -313,9 +313,21 @@ if stage_required "tier1-enterprise"; then
     (
         T1_ISSUES=0
 
-        # RBAC migration
-        if [[ ! -f "supabase/migrations/00000000000001_rbac.sql" ]]; then
-            echo "  x Missing RBAC migration"
+        # RBAC migration — search by content, not filename
+        RBAC_FOUND=false
+        if [[ -d "supabase/migrations" ]]; then
+            for mig in supabase/migrations/*.sql; do
+                [[ ! -f "$mig" ]] && continue
+                if grep -qiE 'CREATE\s+TABLE.*\broles\b' "$mig" 2>/dev/null && \
+                   grep -qiE 'CREATE\s+TABLE.*\buser_roles\b' "$mig" 2>/dev/null; then
+                    RBAC_FOUND=true
+                    echo "  + RBAC migration found: $(basename "$mig")"
+                    break
+                fi
+            done
+        fi
+        if ! $RBAC_FOUND; then
+            echo "  x Missing RBAC migration (need roles + user_roles tables)"
             T1_ISSUES=$((T1_ISSUES + 1))
         fi
 
@@ -344,6 +356,48 @@ if stage_required "tier1-enterprise"; then
             done
         fi
 
+        # RBAC middleware
+        if [[ ! -f "backend/middleware/rbac.py" ]] && [[ ! -f "backend/Middleware/RbacMiddleware.cs" ]]; then
+            echo "  x Missing RBAC middleware (backend/middleware/rbac.py or backend/Middleware/RbacMiddleware.cs)"
+            T1_ISSUES=$((T1_ISSUES + 1))
+        fi
+
+        # Rate limiting (check for slowapi or similar)
+        RATE_LIMIT_FOUND=false
+        if grep -rqlE 'slowapi|Limiter|RateLimitMiddleware|rate.limit' backend/ 2>/dev/null; then
+            RATE_LIMIT_FOUND=true
+        fi
+        if ! $RATE_LIMIT_FOUND; then
+            echo "  x Missing rate limiting in backend"
+            T1_ISSUES=$((T1_ISSUES + 1))
+        fi
+
+        # Error pages (Nuxt error.vue or equivalent)
+        if [[ -d "frontend" ]]; then
+            if [[ ! -f "frontend/error.vue" ]] && ! grep -rqlE 'NuxtErrorBoundary|error\.vue' frontend/ 2>/dev/null; then
+                echo "  x Missing error page (frontend/error.vue)"
+                T1_ISSUES=$((T1_ISSUES + 1))
+            fi
+        fi
+
+        # Form validation (vee-validate or zod usage)
+        if [[ -d "frontend" ]]; then
+            FORM_VAL_FOUND=false
+            if grep -rqlE 'vee-validate|useForm|useField|z\.object|z\.string' frontend/ 2>/dev/null; then
+                FORM_VAL_FOUND=true
+            fi
+            if ! $FORM_VAL_FOUND; then
+                echo "  x Missing form validation (vee-validate + zod) in frontend"
+                T1_ISSUES=$((T1_ISSUES + 1))
+            fi
+        fi
+
+        # CORS explicit allowlist (no wildcard in production)
+        if grep -rqE 'allow_origins.*\[.*"\*"' backend/ 2>/dev/null; then
+            echo "  x CORS wildcard (*) found — must use explicit origin allowlist for production"
+            T1_ISSUES=$((T1_ISSUES + 1))
+        fi
+
         if [[ $T1_ISSUES -eq 0 ]]; then
             echo '{"stage": "tier1-enterprise", "overall_status": "PASS"}' > .claude/tmp/tier1-results.json
             echo "  Tier 1 enterprise check: PASS"
@@ -358,6 +412,43 @@ if stage_required "tier1-enterprise"; then
     SPAWNED_STAGES+=("tier1")
 else
     STAGE_STATUS_tier1="SKIP"
+fi
+
+# ===========================================================
+# Stage: Mobile Tests (when mobile/ exists)
+# ===========================================================
+if [[ -d "mobile" ]] && stage_required "unit-tests"; then
+    echo "Running mobile tests..."
+    (
+        MOBILE_EXIT=0
+        if command -v flutter &>/dev/null; then
+            cd mobile && flutter test --coverage \
+                2>&1 | tee ../.claude/tmp/mobile-test-output.txt
+            MOBILE_EXIT=${PIPESTATUS[0]}
+            cd ..
+
+            # Run flutter analyze
+            cd mobile && flutter analyze \
+                2>&1 | tee -a ../.claude/tmp/mobile-test-output.txt
+            ANALYZE_EXIT=${PIPESTATUS[0]}
+            cd ..
+
+            if [[ $MOBILE_EXIT -eq 0 && $ANALYZE_EXIT -eq 0 ]]; then
+                echo '{"stage": "mobile-tests", "overall_status": "PASS"}' > .claude/tmp/mobile-results.json
+                exit 0
+            else
+                echo '{"stage": "mobile-tests", "overall_status": "FAIL"}' > .claude/tmp/mobile-results.json
+                exit 1
+            fi
+        else
+            echo '{"stage": "mobile-tests", "overall_status": "SKIP", "reason": "flutter not found"}' > .claude/tmp/mobile-results.json
+            exit 0
+        fi
+    ) &
+    STAGE_PID_mobile=$!
+    SPAWNED_STAGES+=("mobile")
+else
+    STAGE_STATUS_mobile="SKIP"
 fi
 
 # ===========================================================
@@ -386,7 +477,7 @@ for stage in "${SPAWNED_STAGES[@]}"; do
 done
 
 # Report skipped stages
-for stage in security smoke unit integration ui perf schema docker tier1; do
+for stage in security smoke unit integration ui perf schema docker tier1 mobile; do
     status_var="STAGE_STATUS_${stage}"
     if [[ -z "${!status_var:-}" ]]; then
         echo "  - $stage: SKIP"
@@ -442,6 +533,54 @@ if stage_required "rbac-check"; then
 fi
 
 # ===========================================================
+# Coverage Threshold Validation
+# ===========================================================
+
+# Read required coverage from deploy-gates.json
+REQUIRED_LINE=0
+REQUIRED_BRANCH=0
+if command -v jq &>/dev/null; then
+    REQUIRED_LINE=$(jq -r ".\"$GATE_LEVEL\".common.coverage.line // 0" "$DEPLOY_GATES" 2>/dev/null || echo "0")
+    REQUIRED_BRANCH=$(jq -r ".\"$GATE_LEVEL\".common.coverage.branch // 0" "$DEPLOY_GATES" 2>/dev/null || echo "0")
+fi
+
+if [[ "$REQUIRED_LINE" -gt 0 ]]; then
+    echo ""
+    echo "Checking coverage thresholds (line: ${REQUIRED_LINE}%, branch: ${REQUIRED_BRANCH}%)..."
+
+    # Backend coverage check
+    if [[ -f ".claude/tmp/backend-coverage.json" ]] && command -v jq &>/dev/null; then
+        ACTUAL_LINE=$(jq -r '.totals.percent_covered | floor' .claude/tmp/backend-coverage.json 2>/dev/null || echo "0")
+        if [[ "$ACTUAL_LINE" -lt "$REQUIRED_LINE" ]]; then
+            echo "  x Backend line coverage ${ACTUAL_LINE}% < required ${REQUIRED_LINE}%"
+            FAILED_STAGES+=("coverage")
+        else
+            echo "  + Backend line coverage: ${ACTUAL_LINE}%"
+        fi
+    fi
+
+    # Frontend coverage check
+    if [[ -f "frontend/coverage/coverage-summary.json" ]] && command -v jq &>/dev/null; then
+        FE_LINE=$(jq -r '.total.lines.pct | floor' frontend/coverage/coverage-summary.json 2>/dev/null || echo "0")
+        FE_BRANCH=$(jq -r '.total.branches.pct | floor' frontend/coverage/coverage-summary.json 2>/dev/null || echo "0")
+        COVERAGE_OK=true
+        if [[ "$FE_LINE" -lt "$REQUIRED_LINE" ]]; then
+            echo "  x Frontend line coverage ${FE_LINE}% < required ${REQUIRED_LINE}%"
+            COVERAGE_OK=false
+        fi
+        if [[ "$FE_BRANCH" -lt "$REQUIRED_BRANCH" ]]; then
+            echo "  x Frontend branch coverage ${FE_BRANCH}% < required ${REQUIRED_BRANCH}%"
+            COVERAGE_OK=false
+        fi
+        if $COVERAGE_OK; then
+            echo "  + Frontend coverage: ${FE_LINE}% line, ${FE_BRANCH}% branch"
+        else
+            FAILED_STAGES+=("coverage")
+        fi
+    fi
+fi
+
+# ===========================================================
 # Gate Decision
 # ===========================================================
 
@@ -467,6 +606,8 @@ Schema Check:     ${STAGE_STATUS_schema:-SKIP}
 Docker Build:     ${STAGE_STATUS_docker:-SKIP}
 RBAC Check:       ${STAGE_STATUS_rbac:-SKIP}
 Tier1 Ent.:       ${STAGE_STATUS_tier1:-SKIP}
+Mobile:           ${STAGE_STATUS_mobile:-SKIP}
+Coverage:         ${STAGE_STATUS_coverage:-SKIP}
 Opus Review:      SKIPPED
 
 GATE DECISION: PIPELINE FAILED
@@ -537,6 +678,8 @@ Schema Check:     ${STAGE_STATUS_schema:-SKIP}
 Docker Build:     ${STAGE_STATUS_docker:-SKIP}
 RBAC Check:       ${STAGE_STATUS_rbac:-SKIP}
 Tier1 Ent.:       ${STAGE_STATUS_tier1:-SKIP}
+Mobile:           ${STAGE_STATUS_mobile:-SKIP}
+Coverage:         ${STAGE_STATUS_coverage:-SKIP}
 Opus Review:      $OPUS_STATUS
 
 GATE DECISION: $OVERALL_DECISION

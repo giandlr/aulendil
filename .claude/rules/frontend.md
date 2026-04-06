@@ -9,7 +9,7 @@ Every frontend file — pages, components, and layouts — must meet production 
 **Before writing any page or component, commit to a clear aesthetic direction:**
 - What problem does this interface solve? Who uses it?
 - Pick a tone and execute it with precision: brutally minimal, editorial, luxury/refined, soft/pastel, industrial, retro-futuristic, etc. Intentionality matters more than intensity.
-- What makes this memorable? One unforgettable detail beats ten generic ones.
+- Each page should have one distinctive visual element — a custom illustration, animated transition, bold typography treatment, or unexpected layout choice.
 
 **Typography** — Choose distinctive, characterful fonts. Pair a display font with a refined body font. Load via Google Fonts or a CDN `<link>`. Never use Inter, Roboto, Arial, or system fonts.
 
@@ -17,9 +17,14 @@ Every frontend file — pages, components, and layouts — must meet production 
 
 **Motion** — Staggered page-load reveals (`animation-delay`) and hover states that surprise. CSS-only preferred. One well-orchestrated entrance beats scattered micro-interactions.
 
-**Spatial Composition** — Unexpected layouts. Asymmetry, overlap, diagonal flow, grid-breaking elements. Generous negative space OR controlled density — never the safe middle.
+**Spatial Composition** — Intentional layouts over generic defaults. Use Tailwind's grid and flexbox utilities creatively — asymmetric column ratios (`grid-cols-[2fr_1fr]`), overlapping elements via negative margins or `z-index`, generous whitespace (`py-24`, `gap-16`). Avoid the predictable 12-column center-everything pattern.
 
-**Backgrounds & Depth** — Atmosphere over flat solid colors: gradient meshes, noise textures, geometric patterns, layered transparencies, dramatic shadows.
+**Backgrounds & Depth** — Atmosphere over flat solid colors: Tailwind gradients (`bg-gradient-to-br`), layered `bg-opacity` and `backdrop-blur`, `shadow-2xl` for depth, decorative border/ring accents. Use `<style scoped>` only for effects Tailwind genuinely cannot express (e.g., complex SVG backgrounds, `@keyframes` custom animations).
+
+**Fallback design directions** (when user has no preference): Offer these three options during Discovery or first UI build. If the user doesn't choose, default to "Modern editorial."
+1. **Modern editorial** — Serif display font (Playfair Display / DM Serif), generous whitespace, bold type scale, dark accent color
+2. **Warm minimal** — Rounded sans-serif (Nunito / Quicksand), soft earth tones, rounded corners (`rounded-2xl`), subtle shadows
+3. **Bold industrial** — Mono/geometric sans (JetBrains Mono / Archivo Black), dark backgrounds, sharp edges, bright accent on dark
 
 **NEVER:**
 - Generic font families: Inter, Roboto, Arial, Space Grotesk, system fonts
@@ -59,7 +64,7 @@ Every async operation needs loading, error, and empty states. Loading: skeleton/
 
 ## Styling
 
-- TailwindCSS utilities only (no inline styles except dynamic values). Avoid `<style scoped>` unless Tailwind can't express it.
+- TailwindCSS utilities as the primary styling method. Use `<style scoped>` for effects Tailwind cannot express: complex `@keyframes` animations, SVG background patterns, gradient meshes, and `backdrop-filter` compositions. Keep scoped styles under 30 lines — if longer, extract to a utility class in `tailwind.config.ts`.
 - Consistent spacing scale. Responsive: `sm:`, `md:`, `lg:` prefixes.
 
 ## Realtime
