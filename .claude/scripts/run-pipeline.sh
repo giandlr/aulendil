@@ -3,14 +3,13 @@ set -uo pipefail
 # Debug mode
 [[ "${AULENDIL_DEBUG:-}" == "1" ]] && set -x
 
-# Master CI/CD pipeline orchestrator — gate-level and deploy-target aware
+# Master CI/CD pipeline orchestrator — gate-level aware
 # Usage: bash .claude/scripts/run-pipeline.sh [mvp|team|production]
-# Env:   DEPLOY_TARGET=vercel|azure  (defaults to vercel if unset)
 # Reads .claude/deploy-gates.json for stage requirements per gate level
 # Exit 0 = PIPELINE PASSED, Exit 1 = PIPELINE FAILED
 
 GATE_LEVEL="${1:-production}"
-DEPLOY_TARGET="${DEPLOY_TARGET:-vercel}"
+DEPLOY_TARGET="vercel"
 PIPELINE_START=$(date +%s)
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
@@ -223,89 +222,6 @@ else
 fi
 
 # ===========================================================
-# Azure-specific: Schema isolation check
-# ===========================================================
-if [[ "$DEPLOY_TARGET" == "azure" ]] && stage_required "schema-isolation-check"; then
-    echo "Running Azure schema isolation check..."
-    (
-        APP_SCHEMA="${APP_SCHEMA:-}"
-        GATE="$GATE_LEVEL"
-        ISSUES=0
-
-        if [[ -z "$APP_SCHEMA" ]]; then
-            echo "  WARNING: APP_SCHEMA not set — schema isolation cannot be verified"
-            ISSUES=$((ISSUES + 1))
-        fi
-
-        # Check migrations don't reference a hardcoded schema name
-        if [[ -d "supabase/migrations" && -n "$APP_SCHEMA" ]]; then
-            OTHER_SCHEMAS=$(grep -rE '\bSET\s+search_path\s+TO\s+' supabase/migrations/ 2>/dev/null \
-                | grep -wv "$APP_SCHEMA" | grep -v "public" | head -5 || true)
-            if [[ -n "$OTHER_SCHEMAS" ]]; then
-                echo "  WARNING: Migrations reference schemas other than $APP_SCHEMA"
-                echo "$OTHER_SCHEMAS"
-                ISSUES=$((ISSUES + 1))
-            fi
-        fi
-
-        if [[ -n "${BLOB_CONTAINER:-}" && "$BLOB_CONTAINER" == "$APP_SCHEMA" ]]; then
-            echo "  + BLOB_CONTAINER matches APP_SCHEMA: $BLOB_CONTAINER"
-        fi
-
-        if [[ $ISSUES -eq 0 ]]; then
-            echo '{"stage": "schema-isolation-check", "overall_status": "PASS"}' > .claude/tmp/schema-check-results.json
-            exit 0
-        else
-            echo '{"stage": "schema-isolation-check", "overall_status": "WARN", "issues": '"$ISSUES"'}' \
-                > .claude/tmp/schema-check-results.json
-            # Fail pipeline at production gate; warn only at lower gates
-            if [[ "$GATE" == "production" ]]; then
-                exit 1
-            fi
-            exit 0
-        fi
-    ) &
-    STAGE_PID_schema=$!
-    SPAWNED_STAGES+=("schema")
-else
-    STAGE_STATUS_schema="SKIP"
-fi
-
-# ===========================================================
-# Azure-specific: Docker build
-# ===========================================================
-if [[ "$DEPLOY_TARGET" == "azure" ]] && stage_required "docker-build"; then
-    echo "Running Docker build check..."
-    (
-        if [[ ! -f "Dockerfile" ]]; then
-            echo "  WARNING: Dockerfile not found — run scaffold-azure-configs.sh first"
-            echo '{"stage": "docker-build", "overall_status": "SKIP", "reason": "No Dockerfile"}' \
-                > .claude/tmp/docker-build-results.json
-            exit 0
-        fi
-        if ! command -v docker &>/dev/null; then
-            echo "  WARNING: Docker not available — skipping build check"
-            echo '{"stage": "docker-build", "overall_status": "SKIP", "reason": "Docker not found"}' \
-                > .claude/tmp/docker-build-results.json
-            exit 0
-        fi
-        docker build -t pipeline-check:latest . > .claude/tmp/docker-build.log 2>&1
-        if [[ $? -eq 0 ]]; then
-            docker rmi pipeline-check:latest &>/dev/null || true
-            echo '{"stage": "docker-build", "overall_status": "PASS"}' > .claude/tmp/docker-build-results.json
-            exit 0
-        else
-            echo '{"stage": "docker-build", "overall_status": "FAIL"}' > .claude/tmp/docker-build-results.json
-            exit 1
-        fi
-    ) &
-    STAGE_PID_docker=$!
-    SPAWNED_STAGES+=("docker")
-else
-    STAGE_STATUS_docker="SKIP"
-fi
-
-# ===========================================================
 # Stage: Tier 1 Enterprise Feature Check (production only)
 # ===========================================================
 if stage_required "tier1-enterprise"; then
@@ -335,8 +251,6 @@ if stage_required "tier1-enterprise"; then
         HEALTH_FOUND=false
         if grep -rqlE '@(app|router)\.(get|route).*["\x27]/health["\x27]' backend/ 2>/dev/null; then
             HEALTH_FOUND=true
-        elif grep -rqlE 'MapGet.*"/health"' backend/ 2>/dev/null; then
-            HEALTH_FOUND=true
         fi
         if ! $HEALTH_FOUND; then
             echo "  x Missing health endpoint (GET /health)"
@@ -357,8 +271,8 @@ if stage_required "tier1-enterprise"; then
         fi
 
         # RBAC middleware
-        if [[ ! -f "backend/middleware/rbac.py" ]] && [[ ! -f "backend/Middleware/RbacMiddleware.cs" ]]; then
-            echo "  x Missing RBAC middleware (backend/middleware/rbac.py or backend/Middleware/RbacMiddleware.cs)"
+        if [[ ! -f "backend/middleware/rbac.py" ]]; then
+            echo "  x Missing RBAC middleware (backend/middleware/rbac.py)"
             T1_ISSUES=$((T1_ISSUES + 1))
         fi
 
@@ -372,22 +286,39 @@ if stage_required "tier1-enterprise"; then
             T1_ISSUES=$((T1_ISSUES + 1))
         fi
 
-        # Error pages (Nuxt error.vue or equivalent)
+        # Error pages (framework-aware)
         if [[ -d "frontend" ]]; then
-            if [[ ! -f "frontend/error.vue" ]] && ! grep -rqlE 'NuxtErrorBoundary|error\.vue' frontend/ 2>/dev/null; then
-                echo "  x Missing error page (frontend/error.vue)"
-                T1_ISSUES=$((T1_ISSUES + 1))
+            FE_FRAMEWORK="nuxt"
+            [[ -f ".env" ]] && FE_FRAMEWORK=$(grep -E "^FRONTEND_FRAMEWORK=" .env 2>/dev/null | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'" || echo "nuxt")
+            [[ -z "$FE_FRAMEWORK" ]] && FE_FRAMEWORK="nuxt"
+
+            if [[ "$FE_FRAMEWORK" == "next" ]]; then
+                if [[ ! -f "frontend/app/error.tsx" ]] && ! grep -rqlE 'error\.tsx' frontend/app/ 2>/dev/null; then
+                    echo "  x Missing error page (frontend/app/error.tsx)"
+                    T1_ISSUES=$((T1_ISSUES + 1))
+                fi
+            else
+                if [[ ! -f "frontend/error.vue" ]] && ! grep -rqlE 'NuxtErrorBoundary|error\.vue' frontend/ 2>/dev/null; then
+                    echo "  x Missing error page (frontend/error.vue)"
+                    T1_ISSUES=$((T1_ISSUES + 1))
+                fi
             fi
         fi
 
-        # Form validation (vee-validate or zod usage)
+        # Form validation (framework-aware)
         if [[ -d "frontend" ]]; then
             FORM_VAL_FOUND=false
-            if grep -rqlE 'vee-validate|useForm|useField|z\.object|z\.string' frontend/ 2>/dev/null; then
-                FORM_VAL_FOUND=true
+            if [[ "${FE_FRAMEWORK:-nuxt}" == "next" ]]; then
+                if grep -rqlE 'react-hook-form|useForm|zodResolver|z\.object|z\.string' frontend/ 2>/dev/null; then
+                    FORM_VAL_FOUND=true
+                fi
+            else
+                if grep -rqlE 'vee-validate|useForm|useField|z\.object|z\.string' frontend/ 2>/dev/null; then
+                    FORM_VAL_FOUND=true
+                fi
             fi
             if ! $FORM_VAL_FOUND; then
-                echo "  x Missing form validation (vee-validate + zod) in frontend"
+                echo "  x Missing form validation in frontend"
                 T1_ISSUES=$((T1_ISSUES + 1))
             fi
         fi
@@ -477,7 +408,7 @@ for stage in "${SPAWNED_STAGES[@]}"; do
 done
 
 # Report skipped stages
-for stage in security smoke unit integration ui perf schema docker tier1 mobile; do
+for stage in security smoke unit integration ui perf tier1 mobile; do
     status_var="STAGE_STATUS_${stage}"
     if [[ -z "${!status_var:-}" ]]; then
         echo "  - $stage: SKIP"
@@ -502,18 +433,31 @@ if stage_required "rbac-check"; then
         RBAC_OK=false
     fi
 
-    if [[ -f "backend/middleware/rbac.py" ]] || [[ -f "backend/Middleware/RbacMiddleware.cs" ]]; then
+    if [[ -f "backend/middleware/rbac.py" ]]; then
         echo "  + RBAC middleware exists"
     else
         echo "  x RBAC middleware not found"
         RBAC_OK=false
     fi
 
-    if [[ -f "frontend/composables/useRole.ts" ]]; then
-        echo "  + useRole composable exists"
+    RBAC_FE_FRAMEWORK="nuxt"
+    [[ -f ".env" ]] && RBAC_FE_FRAMEWORK=$(grep -E "^FRONTEND_FRAMEWORK=" .env 2>/dev/null | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'" || echo "nuxt")
+    [[ -z "$RBAC_FE_FRAMEWORK" ]] && RBAC_FE_FRAMEWORK="nuxt"
+
+    if [[ "$RBAC_FE_FRAMEWORK" == "next" ]]; then
+        if [[ -f "frontend/hooks/use-role.ts" ]] || [[ -f "frontend/hooks/useRole.ts" ]]; then
+            echo "  + useRole hook exists"
+        else
+            echo "  x frontend/hooks/use-role.ts not found"
+            RBAC_OK=false
+        fi
     else
-        echo "  x frontend/composables/useRole.ts not found"
-        RBAC_OK=false
+        if [[ -f "frontend/composables/useRole.ts" ]]; then
+            echo "  + useRole composable exists"
+        else
+            echo "  x frontend/composables/useRole.ts not found"
+            RBAC_OK=false
+        fi
     fi
 
     if $RBAC_OK; then
@@ -602,8 +546,6 @@ Unit Tests:       ${STAGE_STATUS_unit:-SKIP}
 Integration:      ${STAGE_STATUS_integration:-SKIP}
 UI Tests:         ${STAGE_STATUS_ui:-SKIP}
 Performance:      ${STAGE_STATUS_perf:-SKIP}
-Schema Check:     ${STAGE_STATUS_schema:-SKIP}
-Docker Build:     ${STAGE_STATUS_docker:-SKIP}
 RBAC Check:       ${STAGE_STATUS_rbac:-SKIP}
 Tier1 Ent.:       ${STAGE_STATUS_tier1:-SKIP}
 Mobile:           ${STAGE_STATUS_mobile:-SKIP}
@@ -674,8 +616,6 @@ Unit Tests:       ${STAGE_STATUS_unit:-SKIP}
 Integration:      ${STAGE_STATUS_integration:-SKIP}
 UI Tests:         ${STAGE_STATUS_ui:-SKIP}
 Performance:      ${STAGE_STATUS_perf:-SKIP}
-Schema Check:     ${STAGE_STATUS_schema:-SKIP}
-Docker Build:     ${STAGE_STATUS_docker:-SKIP}
 RBAC Check:       ${STAGE_STATUS_rbac:-SKIP}
 Tier1 Ent.:       ${STAGE_STATUS_tier1:-SKIP}
 Mobile:           ${STAGE_STATUS_mobile:-SKIP}
@@ -693,52 +633,26 @@ cat .claude/tmp/pipeline-results.md
 # ===========================================================
 
 if [[ $FINAL_EXIT -eq 0 ]]; then
-    if [[ "$DEPLOY_TARGET" == "azure" ]]; then
-        # Check if azure deploy is enabled for this gate level
-        AZURE_ENABLED="false"
-        if command -v jq &>/dev/null; then
-            AZURE_ENABLED=$(jq -r ".\"$GATE_LEVEL\".azure.enabled // false" "$DEPLOY_GATES" 2>/dev/null || echo "false")
-        fi
+    # Check if vercel deploy is enabled for this gate level
+    VERCEL_ENABLED="false"
+    if command -v jq &>/dev/null; then
+        VERCEL_ENABLED=$(jq -r ".\"$GATE_LEVEL\".vercel.enabled // false" "$DEPLOY_GATES" 2>/dev/null || echo "false")
+    fi
 
-        if [[ "$AZURE_ENABLED" == "true" ]]; then
-            echo ""
-            echo "==========================================================="
-            echo " Pipeline passed — proceeding to Azure deployment"
-            echo "==========================================================="
-            echo ""
-            CLOUD_ENV="${ENVIRONMENT:-staging}"
-            if [[ -f ".claude/scripts/deploy-azure.sh" ]]; then
-                bash .claude/scripts/deploy-azure.sh "$CLOUD_ENV" || {
-                    echo "WARNING: Azure deployment failed." >&2
-                    FINAL_EXIT=1
-                }
-            else
-                echo "WARNING: deploy-azure.sh not found. Run scaffold-azure-configs.sh first." >&2
-            fi
-        fi
-
-    elif [[ "$DEPLOY_TARGET" == "cloud" || "$DEPLOY_TARGET" == "vercel" ]]; then
-        # Check if vercel deploy is enabled for this gate level
-        VERCEL_ENABLED="false"
-        if command -v jq &>/dev/null; then
-            VERCEL_ENABLED=$(jq -r ".\"$GATE_LEVEL\".vercel.enabled // false" "$DEPLOY_GATES" 2>/dev/null || echo "false")
-        fi
-
-        if [[ "$VERCEL_ENABLED" == "true" ]]; then
-            echo ""
-            echo "==========================================================="
-            echo " Pipeline passed — proceeding to cloud deployment"
-            echo "==========================================================="
-            echo ""
-            CLOUD_ENV="${ENVIRONMENT:-staging}"
-            if [[ -f ".claude/scripts/deploy-cloud.sh" ]]; then
-                bash .claude/scripts/deploy-cloud.sh "$CLOUD_ENV" || {
-                    echo "WARNING: Cloud deployment failed." >&2
-                    FINAL_EXIT=1
-                }
-            else
-                echo "WARNING: deploy-cloud.sh not found. Run scaffold-cloud-configs.sh first." >&2
-            fi
+    if [[ "$VERCEL_ENABLED" == "true" ]]; then
+        echo ""
+        echo "==========================================================="
+        echo " Pipeline passed — proceeding to cloud deployment"
+        echo "==========================================================="
+        echo ""
+        CLOUD_ENV="${ENVIRONMENT:-staging}"
+        if [[ -f ".claude/scripts/deploy-cloud.sh" ]]; then
+            bash .claude/scripts/deploy-cloud.sh "$CLOUD_ENV" || {
+                echo "WARNING: Cloud deployment failed." >&2
+                FINAL_EXIT=1
+            }
+        else
+            echo "WARNING: deploy-cloud.sh not found. Run scaffold-cloud-configs.sh first." >&2
         fi
     fi
 fi

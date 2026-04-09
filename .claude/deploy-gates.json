@@ -10,10 +10,6 @@
     "vercel": {
       "enabled": false
     },
-    "azure": {
-      "enabled": false,
-      "requires": ["docker-build"]
-    },
     "narration": "I'll do a quick security check and make sure the app starts up correctly."
   },
   "team": {
@@ -28,11 +24,6 @@
       "enabled": true,
       "require_pipeline_pass": true
     },
-    "azure": {
-      "enabled": true,
-      "require_pipeline_pass": true,
-      "requires": ["schema-isolation-check", "docker-build"]
-    },
     "narration": "I'll run the tests, check security, verify roles are set up, and make sure login works correctly."
   },
   "production": {
@@ -46,11 +37,6 @@
     "vercel": {
       "enabled": true,
       "require_pipeline_pass": true
-    },
-    "azure": {
-      "enabled": true,
-      "require_pipeline_pass": true,
-      "requires": ["schema-isolation-check", "docker-build"]
     },
     "narration": "I'll run the full test suite, check performance, verify roles, and have a senior reviewer examine everything."
   }

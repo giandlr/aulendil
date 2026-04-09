@@ -116,16 +116,16 @@ your-project/
 
 The toolkit scaffolds projects with:
 
-- **Frontend:** Nuxt 3 / Vue 3 (Composition API) + TypeScript + TailwindCSS
+- **Frontend:** Nuxt 3 / Vue 3 (default) or Next.js / React (selectable) + TypeScript + TailwindCSS
 - **Mobile (optional):** Flutter (iOS + Android) — Riverpod state, supabase_flutter, go_router
-- **State:** Pinia (web) / Riverpod 2 (mobile)
-- **Forms:** vee-validate + zod
-- **Backend:** FastAPI (Python 3.9+, async) **or** ASP.NET Core 8 Minimal APIs + EF Core (C#)
+- **State:** Pinia (Vue) / Zustand (React) / Riverpod 2 (mobile)
+- **Forms:** vee-validate + zod (Vue) / React Hook Form + zod (React)
+- **Backend:** FastAPI (Python 3.9+, async)
 - **Database:** Supabase (PostgreSQL with Row Level Security)
 - **Auth:** Supabase Auth (JWT) + RBAC (4 default roles)
-- **Testing:** Vitest + Playwright (frontend), pytest / xUnit (backend), flutter_test (mobile)
-- **Quality:** ESLint, Prettier, vue-tsc, ruff, mypy, bandit (Python) / dotnet format, Roslyn (C#), flutter analyze (mobile)
-- **Hosting:** Cloud (Vercel + Supabase Cloud) or Company Server (Azure Container Apps)
+- **Testing:** Vitest + Playwright (frontend), pytest (backend), flutter_test (mobile)
+- **Quality:** ESLint, Prettier, vue-tsc / tsc, ruff, mypy, bandit, flutter analyze (mobile)
+- **Hosting:** Vercel + Supabase Cloud
 
 All technology decisions are defined in `docs/tech-stack.md`.
 
@@ -219,19 +219,18 @@ An independent AI reviewer (Claude Opus) examines the code with zero knowledge o
 | Stop servers | `bash scripts/stop.sh` |
 | Security scan | `bash .claude/scripts/security-scan.sh` |
 | Repackage toolkit | `bash scripts/package.sh` |
+| Refresh dependencies | `bash scripts/refresh-deps.sh` |
 | Update framework | `bash aulendil/update.sh` |
 
 ---
 
 ## Deployment
 
-The toolkit supports two deployment targets. Claude asks "company server or cloud?" when you say "ship it" — your choice sticks until you change it.
-
-### Cloud (Vercel)
+Deploys to Vercel (frontend + backend) with Supabase Cloud (database). Say "ship it" or "deploy" to start.
 
 ```
 Vercel (single platform)
-├── Nuxt 3 SSR (frontend/)
+├── Nuxt 3 or Next.js SSR (frontend/)
 └── FastAPI Serverless (api/index.py wraps backend/)
 
 Supabase Cloud
@@ -243,7 +242,7 @@ Supabase Cloud
 - **IT handoff:** Your IT team handles infrastructure → auto-generated setup guide
 - **Guided setup:** Not sure → full handoff doc + configs ready for when you are
 
-Say "deploy to cloud" or "make this live" to start. Estimated cloud costs: Vercel Pro ~$20/mo (estimated), Supabase Pro ~$25/mo (estimated).
+Estimated cloud costs: Vercel Pro ~$20/mo (estimated), Supabase Pro ~$25/mo (estimated).
 
 | Command | What It Does |
 |---------|-------------|
@@ -251,38 +250,6 @@ Say "deploy to cloud" or "make this live" to start. Estimated cloud costs: Verce
 | `bash .claude/scripts/deploy-cloud.sh [staging\|production]` | Deploys to Vercel |
 | `bash .claude/scripts/setup-supabase-cloud.sh <ref>` | Links + pushes to Supabase Cloud |
 | `bash .claude/scripts/generate-handoff-doc.sh` | Creates IT setup guide |
-
-### Company Server (Azure)
-
-```
-Azure Container Apps
-└── Docker Container
-    ├── Nuxt 3 SSR
-    └── FastAPI (uvicorn)
-    OAuth2 Proxy (sidecar) — handles Google SSO automatically
-
-Azure Database for PostgreSQL
-└── Shared server, one schema per app (APP_SCHEMA)
-
-Azure Blob Storage
-└── One container per app (BLOB_CONTAINER)
-```
-
-**For companies already on Azure + Google Workspace.** Employees log in with their company email automatically — no extra accounts needed. Each app stays isolated on the shared infrastructure.
-
-**Three deployment paths:**
-- **Self-service:** IT has Azure set up → scaffold configs → pipeline → deploy
-- **IT handoff:** IT handles infrastructure → auto-generated setup guide
-- **Guided setup:** Not sure → full handoff doc + configs ready for when you are
-
-Say "put this on the company server" or "make this live" to start. Estimated costs: ~$15–30/mo per app (estimated — see [Azure pricing calculator](https://azure.microsoft.com/en-us/pricing/calculator/)).
-
-| Command | What It Does |
-|---------|-------------|
-| `bash .claude/scripts/scaffold-azure-configs.sh` | Creates Dockerfile, docker-compose, env template, Container App config |
-| `bash .claude/scripts/deploy-azure.sh [staging\|production]` | Builds image → pushes to ACR → updates Container App |
-| `bash .claude/scripts/setup-azure-db.sh <app-schema>` | Creates per-app schema and database role |
-| `bash .claude/scripts/generate-azure-handoff-doc.sh` | Creates IT setup guide for Azure |
 
 ---
 
@@ -331,6 +298,7 @@ Open `manual/guide.html` in any browser for a visual walkthrough of the entire s
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
+- **v1.8.0** — Next.js/React selectable frontend, C#/.NET and Azure removed, dynamic dependency resolution (`refresh-deps.sh`), framework-aware pipeline checks, ~500 net lines removed
 - **v1.7.4** — Platform integrity audit: expanded Tier 1 pipeline checks (3→8), coverage threshold validation, mobile CI/CD, dependency scanning blocks deploys, Discovery outputs BASELINE.md + design direction, Playwright E2E in post-feature validation, migration push in deploy scripts, design/TailwindCSS rules reconciled, first-user Admin bootstrap
 - **v1.7** — Pipeline gate integrity (RBAC/schema checks now block deploys), security hardening (parameterized SQL, safe env parsing), 35% context token reduction, optimized hooks, bootstrap checkpoint/resume, Docker-optional bootstrap, `preflight-check.sh`, `check-gate.sh`, debug mode
 - **v1.6** — Production baseline (forgot password, user management, RBAC), clarify-before-building, full test suite at every gate level (MVP/Team/Production), Opus review now at Team+, 6 bootstrap fixes (Tailwind, DevTools, env validation, app seed, SETUP.md, dev auth warning)

@@ -15,13 +15,5 @@
     "last_deploy_at": null,
     "last_deploy_status": null,
     "supabase_project_ref": null
-  },
-  "azure": {
-    "provider": null,
-    "app_schema": null,
-    "deploy_url": null,
-    "acr_image": null,
-    "last_deploy_at": null,
-    "last_deploy_status": null
   }
 }

@@ -116,12 +116,13 @@ cp "$SCRIPT_DIR/.claude/settings.json" "$PROJECT_DIR/.claude/settings.json"
 echo "  + .claude/deploy-gates.json"
 echo "  + .claude/settings.json"
 
-# scripts/ (bootstrap, stop, init)
+# scripts/ (bootstrap, stop, init, refresh-deps)
 mkdir -p "$PROJECT_DIR/scripts"
-cp "$SCRIPT_DIR/scripts/bootstrap.sh" "$PROJECT_DIR/scripts/bootstrap.sh"
-cp "$SCRIPT_DIR/scripts/stop.sh"      "$PROJECT_DIR/scripts/stop.sh"
-cp "$SCRIPT_DIR/scripts/init.sh"      "$PROJECT_DIR/scripts/init.sh"
-echo "  + scripts/bootstrap.sh, stop.sh, init.sh"
+cp "$SCRIPT_DIR/scripts/bootstrap.sh"    "$PROJECT_DIR/scripts/bootstrap.sh"
+cp "$SCRIPT_DIR/scripts/stop.sh"         "$PROJECT_DIR/scripts/stop.sh"
+cp "$SCRIPT_DIR/scripts/init.sh"         "$PROJECT_DIR/scripts/init.sh"
+cp "$SCRIPT_DIR/scripts/refresh-deps.sh" "$PROJECT_DIR/scripts/refresh-deps.sh" 2>/dev/null || true
+echo "  + scripts/bootstrap.sh, stop.sh, init.sh, refresh-deps.sh"
 
 # docs/ (framework reference docs + CHANGELOG)
 mkdir -p "$PROJECT_DIR/docs"
@@ -155,9 +156,10 @@ case "$(uname -s)" in
   *)
     find "$PROJECT_DIR/.claude/hooks"   -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
     find "$PROJECT_DIR/.claude/scripts" -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
-    chmod +x "$PROJECT_DIR/scripts/bootstrap.sh" 2>/dev/null || true
-    chmod +x "$PROJECT_DIR/scripts/stop.sh"      2>/dev/null || true
-    chmod +x "$PROJECT_DIR/scripts/init.sh"      2>/dev/null || true
+    chmod +x "$PROJECT_DIR/scripts/bootstrap.sh"    2>/dev/null || true
+    chmod +x "$PROJECT_DIR/scripts/stop.sh"        2>/dev/null || true
+    chmod +x "$PROJECT_DIR/scripts/init.sh"        2>/dev/null || true
+    chmod +x "$PROJECT_DIR/scripts/refresh-deps.sh" 2>/dev/null || true
     ;;
 esac
 
@@ -179,6 +181,9 @@ echo "════════════════════════�
 echo ""
 echo "  Your app code and configuration were not changed."
 echo "  No need to re-run bootstrap."
+echo ""
+echo "  To update dependencies to latest stable versions:"
+echo "    bash scripts/refresh-deps.sh"
 echo ""
 echo "  What's new: see CHANGELOG.md in your project docs/"
 echo ""

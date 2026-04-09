@@ -18,7 +18,7 @@ VIRTUAL_ENV: .venv
 
 ---
 
-## Frontend
+## Frontend (Default: Vue)
 
 FRAMEWORK: vue
 META_FRAMEWORK: nuxt
@@ -29,30 +29,27 @@ COMPONENT_STYLE: composition-api
 STATE_MANAGEMENT: pinia
 FORM_VALIDATION: vee-validate + zod
 
+## Frontend (Alternative: React — when FRONTEND_FRAMEWORK=next)
+
+FRAMEWORK: react
+META_FRAMEWORK: next
+VERSION: Next.js 15 / React 19
+LANGUAGE: typescript
+STYLING: tailwindcss
+COMPONENT_STYLE: function-components
+STATE_MANAGEMENT: zustand
+FORM_VALIDATION: react-hook-form + @hookform/resolvers + zod
+
 ---
 
 ## Backend
 
-# Set BACKEND_LANGUAGE=python (default) or BACKEND_LANGUAGE=csharp in .env
-BACKEND_LANGUAGE: python  # or "csharp"
-
-### Python (default)
 FRAMEWORK: fastapi
 LANGUAGE: python
 API_STYLE: REST
 ASYNC: true
 AUTH: supabase-auth
 FILE_UPLOADS: supabase-storage
-
-### C# (when BACKEND_LANGUAGE=csharp)
-FRAMEWORK: aspnetcore-minimal-apis
-LANGUAGE: csharp
-DOTNET_VERSION: 8
-ORM: entity-framework-core-8
-DB_PROVIDER: npgsql
-AUTH: jwt-bearer (Supabase RS256 or Azure Entra ID)
-API_STYLE: REST
-RESPONSE_ENVELOPE: ApiResponse<T> record type (same structure as Python stack)
 
 ---
 
@@ -91,21 +88,20 @@ SECURITY: bandit
 TYPE_CHECK: mypy
 LINT: ruff
 
-### Backend (C#)
-UNIT: xunit
-COVERAGE: coverlet + ReportGenerator
-MOCK: Moq
-INTEGRATION: WebApplicationFactory
-LINT: dotnet format + Roslyn analyzers
-
 ### Mobile
 UNIT: flutter_test
 MOCK: mocktail
 INTEGRATION: integration_test
 
-### Frontend
+### Frontend (Nuxt/Vue)
 UNIT: vitest
 COMPONENT: @vue/test-utils
+E2E: playwright
+VISUAL_REGRESSION: playwright-screenshots
+
+### Frontend (Next.js/React)
+UNIT: vitest
+COMPONENT: @testing-library/react + @testing-library/jest-dom
 E2E: playwright
 VISUAL_REGRESSION: playwright-screenshots
 
@@ -129,12 +125,6 @@ SECURITY: bandit
 MIN_COVERAGE_LINES: 80
 MIN_COVERAGE_BRANCHES: 70
 
-### C#
-LINTER: Roslyn analyzers
-FORMATTER: dotnet format
-MIN_COVERAGE_LINES: 80
-MIN_COVERAGE_BRANCHES: 70
-
 ### TypeScript / Vue
 LINTER: eslint
 FORMATTER: prettier
@@ -152,17 +142,15 @@ MIN_COVERAGE_BRANCHES: 70
 
 ## Infrastructure
 
-| | Cloud (Vercel) | Company Server (Azure) |
-|---|---|---|
-| **Frontend** | Vercel SSR (Nuxt 3 with edge middleware) | Azure Container Apps (Docker container) |
-| **Backend** | Vercel serverless (FastAPI as Python functions at /api/*) | Azure Container Apps (FastAPI in same container) |
-| **Database** | Supabase Cloud (PostgreSQL + Auth + Storage + Realtime) | Supabase Cloud or Azure Database for PostgreSQL (shared server, per-app schema via `APP_SCHEMA`) |
-| **Secrets** | `.env.local` (local), Vercel env vars + Supabase Vault (production) | `.env.local` (local), Azure Key Vault / Container App secrets (production) |
-| **Auth** | Supabase Auth (email/password, OAuth, JWT) | OAuth2 Proxy → Google SSO → `X-Forwarded-Email` header |
-| **Storage** | Supabase Storage (bucket RLS, signed URLs < 1hr) | Azure Blob Storage (per-app container via `BLOB_CONTAINER`, RBAC-scoped) |
-| **CI/CD** | Claude Code pipeline + Vercel deploy | Claude Code pipeline + Docker build/push/deploy stages |
-
-DEPLOY_TARGET: vercel  # or "azure" — set in .env at scaffold time, defaults to vercel if unset
+| Component | Technology |
+|-----------|-----------|
+| **Frontend** | Vercel SSR (Nuxt 3 or Next.js — selected during Discovery) |
+| **Backend** | Vercel serverless (FastAPI as Python functions at /api/*) |
+| **Database** | Supabase Cloud (PostgreSQL + Auth + Storage + Realtime) |
+| **Secrets** | `.env.local` (local), Vercel env vars + Supabase Vault (production) |
+| **Auth** | Supabase Auth (email/password, OAuth, JWT) |
+| **Storage** | Supabase Storage (bucket RLS, signed URLs < 1hr) |
+| **CI/CD** | Claude Code pipeline + Vercel deploy |
 SECRETS_LOCAL: .env.local
 CI_CD: claude-code pipeline (this system)
 
@@ -215,23 +203,19 @@ BOOTSTRAP_DESCRIPTION: |
 ## Run Commands
 
 DEV_FRONTEND: cd frontend && npm run dev
-DEV_BACKEND_PYTHON: cd backend && uvicorn main:app --reload
-DEV_BACKEND_CSHARP: cd backend && dotnet run
+DEV_BACKEND: cd backend && uvicorn main:app --reload
 DEV_MOBILE: cd mobile && flutter run
-TEST_BACKEND_PYTHON: cd backend && pytest --cov --cov-report=term-missing
-TEST_BACKEND_CSHARP: cd backend && dotnet test --collect:"XPlat Code Coverage"
+TEST_BACKEND: cd backend && pytest --cov --cov-report=term-missing
 TEST_FRONTEND: cd frontend && npm run test
 TEST_E2E: cd frontend && npx playwright test
 TEST_MOBILE: cd mobile && flutter test --coverage
-LINT_BACKEND_PYTHON: cd backend && ruff check . && mypy .
-LINT_BACKEND_CSHARP: cd backend && dotnet format --verify-no-changes
+LINT_BACKEND: cd backend && ruff check . && mypy .
 LINT_FRONTEND: cd frontend && npm run lint
 LINT_MOBILE: cd mobile && flutter analyze && dart format --set-exit-if-changed .
 MIGRATE_SUPABASE: supabase db push
 MIGRATE_NEW_SUPABASE: supabase db diff -f [migration_name]
-MIGRATE_CSHARP: cd backend && dotnet ef database update
-MIGRATE_NEW_CSHARP: cd backend && dotnet ef migrations add [migration_name]
-TYPE_CHECK_FRONTEND: cd frontend && vue-tsc --noEmit
+TYPE_CHECK_FRONTEND_NUXT: cd frontend && vue-tsc --noEmit
+TYPE_CHECK_FRONTEND_NEXT: cd frontend && tsc --noEmit
 
 ---
 

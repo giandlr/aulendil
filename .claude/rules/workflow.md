@@ -1,9 +1,10 @@
 ## Tech Stack
 
-- **Frontend:** Nuxt 3 / Vue 3 (Composition API) + TypeScript + TailwindCSS
-- **State:** Pinia (actions only, no direct mutations from components)
-- **Forms:** vee-validate + zod
-- **Backend:** FastAPI (Python 3.9+, async) — or ASP.NET Core 8 when `BACKEND_LANGUAGE=csharp`
+- **Frontend (default):** Nuxt 3 / Vue 3 (Composition API) + TypeScript + TailwindCSS
+- **Frontend (alt):** Next.js / React + TypeScript + TailwindCSS — when `FRONTEND_FRAMEWORK=next`
+- **State:** Pinia (Vue) or Zustand (React) — actions only, no direct mutations from components
+- **Forms:** vee-validate + zod (Vue) or React Hook Form + @hookform/resolvers + zod (React)
+- **Backend:** FastAPI (Python 3.9+, async)
 - **Mobile (optional):** Flutter (iOS + Android) — scaffolded into `mobile/` when selected
 - **Database:** Supabase (PostgreSQL, RLS enforced on all tables)
 - **Auth:** Supabase Auth (JWT, server-side verification)
@@ -12,6 +13,7 @@
 
 ## Directory Structure
 
+### Frontend — Nuxt (default, `FRONTEND_FRAMEWORK=nuxt`)
 - `frontend/components/` — Vue components (composition API, < 200 lines)
 - `frontend/composables/` — Shared composables (Realtime subscriptions here)
 - `frontend/pages/` — Nuxt file-based routing
@@ -19,13 +21,20 @@
 - `frontend/services/` — ALL Supabase client calls — components never call Supabase directly
 - `frontend/types/` — Shared TypeScript types
 - `frontend/tests/` — Vitest + Playwright tests
-- `backend/routes/` — FastAPI routers (no business logic, < 20 lines per handler) **[Python]**
+
+### Frontend — Next.js (`FRONTEND_FRAMEWORK=next`)
+- `frontend/app/` — App Router pages and layouts
+- `frontend/components/` — React components (function components, < 200 lines)
+- `frontend/hooks/` — Custom React hooks (Realtime subscriptions here)
+- `frontend/stores/` — Zustand stores (< 150 lines, split by domain)
+- `frontend/services/` — ALL Supabase client calls — components never call Supabase directly
+- `frontend/types/` — Shared TypeScript types
+- `frontend/tests/` — Vitest + Playwright tests
+- `backend/routes/` — FastAPI routers (no business logic, < 20 lines per handler)
 - `backend/services/` — Business logic layer
-- `backend/models/` — Pydantic request/response models **[Python]** / record DTOs **[C#]**
+- `backend/models/` — Pydantic request/response models
 - `backend/middleware/` — Auth, logging, error handling, CORS
-- `backend/tests/` — pytest suites **[Python]** / xUnit **[C#]**
-- `backend/Routes/` — ASP.NET Core endpoint maps **[C# only]**
-- `backend/Data/` — EF Core DbContext + Migrations **[C# only]**
+- `backend/tests/` — pytest suites
 - `mobile/lib/features/` — Flutter feature modules (data / domain / presentation) **[mobile only]**
 - `mobile/lib/core/` — Shared Flutter services, auth, router **[mobile only]**
 - `supabase/migrations/` — SQL migrations (`supabase db diff`)
@@ -35,23 +44,19 @@
 
 - **Bootstrap:** `bash scripts/bootstrap.sh`
 - **Dev frontend:** `cd frontend && npm run dev`
-- **Dev backend (Python):** `cd backend && uvicorn main:app --reload`
-- **Dev backend (C#):** `cd backend && dotnet run`
+- **Dev backend:** `cd backend && uvicorn main:app --reload`
 - **Dev mobile:** `cd mobile && flutter run`
-- **Test backend (Python):** `cd backend && pytest --cov --cov-report=term-missing`
-- **Test backend (C#):** `cd backend && dotnet test --collect:"XPlat Code Coverage"`
+- **Test backend:** `cd backend && pytest --cov --cov-report=term-missing`
 - **Test frontend:** `cd frontend && npm run test`
 - **Test e2e:** `cd frontend && npx playwright test`
 - **Test mobile:** `cd mobile && flutter test --coverage`
-- **Lint backend (Python):** `cd backend && ruff check . && mypy .`
-- **Lint backend (C#):** `cd backend && dotnet format --verify-no-changes`
+- **Lint backend:** `cd backend && ruff check . && mypy .`
 - **Lint frontend:** `cd frontend && npm run lint`
 - **Lint mobile:** `cd mobile && flutter analyze && dart format --set-exit-if-changed .`
-- **Type check frontend:** `cd frontend && vue-tsc --noEmit`
-- **Migrate (Supabase/Python):** `supabase db push`
-- **New migration (Supabase/Python):** `supabase db diff -f [migration_name]`
-- **Migrate (C#):** `cd backend && dotnet ef database update`
-- **New migration (C#):** `cd backend && dotnet ef migrations add [migration_name]`
+- **Type check frontend (Nuxt):** `cd frontend && vue-tsc --noEmit`
+- **Type check frontend (Next.js):** `cd frontend && tsc --noEmit`
+- **Migrate:** `supabase db push`
+- **New migration:** `supabase db diff -f [migration_name]`
 
 ## Discovery Mode
 
@@ -59,7 +64,7 @@
 
 Full Discovery flow (3 rounds of questions): read `.claude/refs/discovery-mode.md` before starting Discovery.
 
-**Key rules:** Round 1 asks 2 questions (app type + audience). Round 2 covers features, mobile, backend language, design direction, and the production baseline checklist. Round 3 covers data access. Never skip the baseline checklist for team/external apps. Output: `.claude/brief.md` + `.claude/BASELINE.md`.
+**Key rules:** Round 1 asks 2 questions (app type + audience). Round 2 covers features, frontend framework (Vue+Nuxt or React+Next.js), mobile, design direction, and the production baseline checklist. Round 3 covers data access. Never skip the baseline checklist for team/external apps. Output: `.claude/brief.md` + `.claude/BASELINE.md`.
 
 **Scope change:** If the user expands the audience mid-project (e.g., "my team will use this now"), re-present the baseline checklist for the new audience level and update `.claude/BASELINE.md`. See `discovery-mode.md` for details.
 
@@ -87,7 +92,7 @@ specified a design system, existing brand, or specific visual direction.
 - External service integrations
 - Features affecting multiple layers (frontend + backend + migration)
 
-**Auto-include:** Loading/error/empty states in Vue components, rate limiting + pagination + soft deletes + auth guards in Python/C# routes, RLS + standard columns + FK indexes in migrations, tests alongside implementation. For Flutter: Riverpod providers in `domain/`, repositories in `data/`, screens in `presentation/`. Narrate each in one sentence.
+**Auto-include:** Loading/error/empty states in frontend components, rate limiting + pagination + soft deletes + auth guards in FastAPI routes, RLS + standard columns + FK indexes in migrations, tests alongside implementation. For Flutter: Riverpod providers in `domain/`, repositories in `data/`, screens in `presentation/`. Narrate each in one sentence.
 
 **Production baseline:** After building the first substantive feature in a new project, check `production-baseline.md` against the audience confirmed in Discovery. If baseline features (forgot password, user management, role assignment, etc.) have not been built yet, flag them in plain English and offer to add them before moving on. Never silently skip this check.
 
@@ -111,22 +116,18 @@ specified a design system, existing brand, or specific visual direction.
 > - Backend: `GET/POST/PATCH /api/tasks` with auth
 > - Frontend: Task board page at `/app/tasks`"
 
-**Blocks:** Hardcoded secrets, service role key in frontend, direct Supabase calls outside services/ (web) or features/*/data/ (mobile), raw SQL string concatenation in C#, business logic in C# route handlers.
+**Blocks:** Hardcoded secrets, service role key in frontend, direct Supabase calls outside services/ (web) or features/*/data/ (mobile).
 
 ## Deploy Mode
 
 **Trigger:** "ship it", "deploy", "go live". Full deploy flow: read `.claude/refs/deploy-mode.md`.
 
 **Key rules:**
-1. If `DEPLOY_TARGET` not set: ask "company server or cloud?" — set in `.env`
-2. Ask gate level (mvp/team/production)
-3. Run `bash .claude/scripts/run-pipeline.sh <gate>`
-4. Write `build` back to `.claude/mode` when done
+1. Ask gate level (mvp/team/production)
+2. Run `bash .claude/scripts/run-pipeline.sh <gate>`
+3. Write `build` back to `.claude/mode` when done
 
-**Language:** Say "company server" for Azure, "cloud" for Vercel. Never use technical names.
-
-**Cloud (Vercel):** Frontend + Backend on Vercel, DB on Supabase Cloud.
-**Company Server (Azure):** Docker on Azure Container Apps, Google SSO via OAuth2 Proxy, schema isolation per app.
+**Deploy target:** Vercel (frontend + backend) with Supabase Cloud (database).
 
 ## Architectural Rules
 

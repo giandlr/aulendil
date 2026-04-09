@@ -885,11 +885,11 @@
         <div class="grid-3" style="gap: 12px; margin-bottom: 16px;">
           <div class="card c-purple" style="padding: 18px;">
             <span class="card-label">Frontend</span>
-            <h3>Nuxt 3 + Vue 3</h3>
+            <h3>Nuxt 3 + Vue 3 <span style="font-size:12px; font-weight:400; color:var(--text-secondary);">(or React + Next.js)</span></h3>
             <ul class="bullet-list mt-8">
               <li>Dark-themed app shell with navigation</li>
               <li>TailwindCSS for styling</li>
-              <li>Pinia for state management</li>
+              <li>Pinia for state management (or Zustand for React)</li>
               <li>Supabase client (with graceful fallback)</li>
               <li>Auto-login for local development</li>
               <li>TypeScript, ESLint, Prettier, Vitest</li>
@@ -1310,31 +1310,19 @@
         <h2>Where Do You Want <span class="highlight-green">Your App</span>?</h2>
         <p class="subtitle" style="margin-bottom:16px;">Two deployment targets. Same pipeline. Your choice sticks until you change it.</p>
 
-        <div class="grid-2" style="gap: 16px; margin-bottom: 16px;">
-          <div class="card" style="padding: 20px; background: rgba(22,121,250,0.06); border: 2px solid rgba(22,121,250,0.2);">
-            <h3 style="color: var(--blue); margin-bottom: 10px;">Cloud</h3>
-            <p style="font-size: 13px; margin-bottom: 10px;">For teams that want the quickest path to a public URL.</p>
+        <div class="card" style="padding: 20px; background: rgba(22,121,250,0.06); border: 2px solid rgba(22,121,250,0.2); margin-bottom: 16px;">
+            <h3 style="color: var(--blue); margin-bottom: 10px;">Cloud (Vercel + Supabase)</h3>
+            <p style="font-size: 13px; margin-bottom: 10px;">The quickest path to a public URL.</p>
             <ul class="bullet-list" style="font-size: 13px;">
-              <li>Hosted on the internet, shareable link</li>
+              <li>Frontend + backend hosted on Vercel</li>
+              <li>Database on Supabase Cloud</li>
               <li>Works without an IT team</li>
-              <li>Company login via Supabase Auth</li>
               <li>~$45/mo (estimated)</li>
             </ul>
-          </div>
-          <div class="card" style="padding: 20px; background: var(--bg-lavender); border: 2px solid rgba(129,57,238,0.2);">
-            <h3 style="color: var(--purple); margin-bottom: 10px;">Company Server</h3>
-            <p style="font-size: 13px; margin-bottom: 10px;">For companies already on Azure + Google Workspace.</p>
-            <ul class="bullet-list" style="font-size: 13px;">
-              <li>Runs on your company's Azure infrastructure</li>
-              <li>Employees log in with company email automatically</li>
-              <li>Apps stay on-premises or in your org's cloud</li>
-              <li>~$15–30/mo per app (estimated)</li>
-            </ul>
-          </div>
         </div>
 
         <div class="big-quote">
-          Say "ship it" and Claude will ask where you want it. Say "switch to the company server" or "switch to the cloud" anytime to change.
+          Say "ship it" or "deploy" and Claude handles the rest. The pipeline runs first &mdash; nothing ships unless it passes.
         </div>
       </div>
     </div>
@@ -1371,103 +1359,6 @@
 
         <div class="big-quote">
           Say "deploy to cloud" or "make this live" and Claude handles the rest. The pipeline runs first &mdash; nothing ships unless it passes.
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== SLIDE: COMPANY SERVER (AZURE) ARCHITECTURE ==================== -->
-    <div class="slide" data-slide="18">
-      <div class="slide-scroll">
-        <h2>Company Server <span class="highlight-purple">Architecture</span></h2>
-        <p class="subtitle" style="margin-bottom:16px;">Your app runs in your company's Azure infrastructure. IT sets it up once.</p>
-
-        <div class="grid-2" style="gap: 12px; margin-bottom: 16px;">
-          <div class="card" style="padding: 16px;">
-            <h3 style="font-size: 14px; color: var(--purple); margin-bottom: 8px;">How it works</h3>
-            <ul class="bullet-list" style="font-size: 13px;">
-              <li>Your app runs inside a Docker container on Azure</li>
-              <li>Employees visit the URL and click "Sign in with Google"</li>
-              <li>A security proxy checks their email is from your company domain</li>
-              <li>The app receives the employee's email — no passwords to manage</li>
-              <li>Roles and permissions still work exactly the same way</li>
-            </ul>
-          </div>
-          <div class="card" style="padding: 16px;">
-            <h3 style="font-size: 14px; color: var(--blue); margin-bottom: 8px;">What IT sets up (once)</h3>
-            <ul class="bullet-list" style="font-size: 13px;">
-              <li>Azure Container Apps environment (shared across apps)</li>
-              <li>Shared PostgreSQL database server</li>
-              <li>Shared Blob Storage account</li>
-              <li>Google OAuth client in Google Cloud Console</li>
-              <li>Each new app gets its own isolated slice automatically</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="big-quote">
-          Claude generates a complete IT setup guide. After one-time setup, every new app deploys with a single command.
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== SLIDE: DUAL AUTH MODES ==================== -->
-    <div class="slide" data-slide="19">
-      <div class="slide-scroll">
-        <h2>How <span class="highlight-green">Login</span> Works</h2>
-        <p class="subtitle" style="margin-bottom:16px;">The login experience adapts to your deployment target automatically.</p>
-
-        <div class="grid-2" style="gap: 16px; margin-bottom: 16px;">
-          <div class="card" style="padding: 20px; background: rgba(22,121,250,0.06);">
-            <h3 style="color: var(--blue); font-size: 14px; margin-bottom: 8px;">Cloud login</h3>
-            <ul class="bullet-list" style="font-size: 13px;">
-              <li>Email + password via Supabase Auth</li>
-              <li>Optional Google login button</li>
-              <li>Works for any email address</li>
-              <li>You control who gets an account (invite-only)</li>
-            </ul>
-          </div>
-          <div class="card" style="padding: 20px; background: var(--bg-lavender);">
-            <h3 style="color: var(--purple); font-size: 14px; margin-bottom: 8px;">Company server login</h3>
-            <ul class="bullet-list" style="font-size: 13px;">
-              <li>Employees click "Sign in with Google"</li>
-              <li>Only your company email domain is allowed</li>
-              <li>No password registration needed</li>
-              <li>New employees auto-provisioned on first login</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="card" style="padding: 16px; background: var(--bg-green);">
-          <h3 style="font-size: 13px; color: #1a8a00; margin-bottom: 6px;">Roles work the same in both modes</h3>
-          <p style="font-size: 13px;">Admin, Manager, Member, Viewer — the four default roles apply regardless of login method. The admin assigns roles after first login. Claude handles the plumbing automatically.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== SLIDE: APP ISOLATION ==================== -->
-    <div class="slide" data-slide="20">
-      <div class="slide-scroll">
-        <h2>App <span class="highlight-purple">Isolation</span></h2>
-        <p class="subtitle" style="margin-bottom:16px;">Multiple apps share company infrastructure without ever seeing each other's data.</p>
-
-        <div class="card" style="padding: 16px; margin-bottom: 12px;">
-          <h3 style="font-size: 14px; margin-bottom: 10px;">One schema per app</h3>
-          <p style="font-size: 13px;">On the company server, each app gets its own dedicated slice of the shared database. The HR Leave Tracker and the HR Onboarding Tool both live on the same database server, but their tables are completely separate — one can never read the other's data.</p>
-        </div>
-
-        <div class="grid-2" style="gap: 12px; margin-bottom: 12px;">
-          <div class="card" style="padding: 14px; background: rgba(22,121,250,0.06);">
-            <h3 style="font-size: 13px; color: var(--blue); margin-bottom: 6px;">Database</h3>
-            <p style="font-size: 12px;">Each app: its own schema (e.g. <code>hr_leave_tracker</code>) and its own database user. The app can only access its own tables.</p>
-          </div>
-          <div class="card" style="padding: 14px; background: var(--bg-lavender);">
-            <h3 style="font-size: 13px; color: var(--purple); margin-bottom: 6px;">File storage</h3>
-            <p style="font-size: 12px;">Each app: its own storage container (e.g. <code>hr_leave_tracker</code>). Files never mix between apps.</p>
-          </div>
-        </div>
-
-        <div class="big-quote">
-          IT provisions the shared server once. Claude automatically configures each new app's isolation at scaffold time — no manual schema setup needed.
         </div>
       </div>
     </div>
@@ -1724,49 +1615,8 @@
       </div>
     </div>
 
-    <!-- ==================== SLIDE: C# BACKEND ==================== -->
-    <div class="slide" data-slide="27">
-      <div class="slide-scroll">
-        <h2>C# Backend Option</h2>
-        <p class="subtitle" style="margin-bottom:16px;">For teams already on .NET — swap FastAPI for ASP.NET Core 8 with zero impact on the frontend or database.</p>
-
-        <div class="grid-2" style="gap:16px; margin-bottom:16px;">
-          <div class="card" style="padding:16px; background:var(--bg-lavender);">
-            <h3 style="color:var(--purple); font-size:14px; margin-bottom:8px;">How to activate</h3>
-            <p style="font-size:13px;">During Discovery, Claude asks <em>"Which backend language?"</em> — answer <em>"C#"</em>. That's it. Bootstrap handles the rest.</p>
-          </div>
-          <div class="card" style="padding:16px; background:var(--bg-green);">
-            <h3 style="color:#1a8a00; font-size:14px; margin-bottom:8px;">What changes</h3>
-            <p style="font-size:13px;"><code style="font-size:12px;">backend/</code> becomes an ASP.NET Core 8 project. Frontend, Supabase, deploy scripts — all unchanged. Azure Docker image uses the .NET 8 runtime instead of Python.</p>
-          </div>
-        </div>
-
-        <table style="width:100%; border-collapse:collapse; font-size:clamp(12px,1vw,14px); margin-bottom:16px;">
-          <thead>
-            <tr>
-              <th style="text-align:left; padding:8px 12px; color:var(--purple); text-transform:uppercase; letter-spacing:1px; font-size:10px; font-weight:700; border-bottom:2px solid var(--card-border);">Concern</th>
-              <th style="text-align:left; padding:8px 12px; color:var(--purple); text-transform:uppercase; letter-spacing:1px; font-size:10px; font-weight:700; border-bottom:2px solid var(--card-border);">Python stack</th>
-              <th style="text-align:left; padding:8px 12px; color:var(--purple); text-transform:uppercase; letter-spacing:1px; font-size:10px; font-weight:700; border-bottom:2px solid var(--card-border);">C# stack</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Framework</td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">FastAPI</td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">ASP.NET Core 8 Minimal APIs</td></tr>
-            <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Database access</td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">supabase-py</td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">EF Core 8 + Npgsql</td></tr>
-            <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Auth</td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Supabase JWT</td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">JWT Bearer (same Supabase JWT)</td></tr>
-            <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Testing</td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">pytest</td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">xUnit + WebApplicationFactory</td></tr>
-            <tr><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">API response</td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);"><code style="font-size:11px;">{"status","data","meta"}</code></td><td style="padding:6px 12px; border-bottom:1px solid var(--card-border);">Same envelope — <code style="font-size:11px;">ApiResponse&lt;T&gt;</code></td></tr>
-            <tr><td style="padding:6px 12px;">Docker runtime</td><td style="padding:6px 12px;">python:3.11-slim</td><td style="padding:6px 12px;">mcr.microsoft.com/dotnet/aspnet:8.0</td></tr>
-          </tbody>
-        </table>
-
-        <div class="card" style="padding:12px; background:rgba(22,121,250,0.06);">
-          <p style="font-size:13px;"><strong>Same rules apply:</strong> route handlers stay under 20 lines, business logic goes in <code style="font-size:12px;">Services/</code>, parameterized queries only. Claude enforces these automatically for both stacks.</p>
-        </div>
-      </div>
-    </div>
-
     <!-- ==================== SLIDE: CHOOSING YOUR STACK ==================== -->
-    <div class="slide" data-slide="28">
+    <div class="slide" data-slide="27">
       <div class="slide-scroll">
         <h2>Choosing Your Stack</h2>
         <p class="subtitle" style="margin-bottom:16px;">Pick what fits your team — Claude does the rest automatically.</p>
@@ -1776,8 +1626,8 @@
             <h3 style="font-size:14px; margin-bottom:8px;">Web only</h3>
             <p style="font-size:12px; color:var(--text-secondary); margin-bottom:10px;">Default. No extra questions.</p>
             <div style="font-size:12px; line-height:1.8;">
-              ✓ Nuxt 3 (web)<br>
-              ✓ Python or C# backend<br>
+              ✓ Nuxt 3 or Next.js (web)<br>
+              ✓ FastAPI backend<br>
               ✗ No <code style="font-size:11px;">mobile/</code>
             </div>
           </div>
@@ -1785,7 +1635,7 @@
             <h3 style="font-size:14px; margin-bottom:8px; color:var(--purple);">Web + Mobile</h3>
             <p style="font-size:12px; color:var(--text-secondary); margin-bottom:10px;">Say "I need a mobile app" in Discovery.</p>
             <div style="font-size:12px; line-height:1.8;">
-              ✓ Nuxt 3 (web)<br>
+              ✓ Nuxt 3 or Next.js (web)<br>
               ✓ Flutter iOS + Android<br>
               ✓ Shared backend + DB
             </div>
@@ -1796,36 +1646,13 @@
             <div style="font-size:12px; line-height:1.8;">
               ✗ No <code style="font-size:11px;">frontend/</code><br>
               ✓ Flutter iOS + Android<br>
-              ✓ Python or C# backend
+              ✓ FastAPI backend
             </div>
           </div>
         </div>
 
-        <table style="width:100%; border-collapse:collapse; font-size:clamp(12px,1vw,13px); margin-bottom:16px;">
-          <thead>
-            <tr>
-              <th style="text-align:left; padding:8px 12px; color:var(--purple); text-transform:uppercase; letter-spacing:1px; font-size:10px; font-weight:700; border-bottom:2px solid var(--card-border);">Choose Python if…</th>
-              <th style="text-align:left; padding:8px 12px; color:var(--purple); text-transform:uppercase; letter-spacing:1px; font-size:10px; font-weight:700; border-bottom:2px solid var(--card-border);">Choose C# if…</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="padding:8px 12px; border-bottom:1px solid var(--card-border); vertical-align:top;">You have no strong preference (Python is the default)</td>
-              <td style="padding:8px 12px; border-bottom:1px solid var(--card-border); vertical-align:top;">Your IT team already runs .NET apps</td>
-            </tr>
-            <tr>
-              <td style="padding:8px 12px; border-bottom:1px solid var(--card-border); vertical-align:top;">Your team knows Python or wants to learn</td>
-              <td style="padding:8px 12px; border-bottom:1px solid var(--card-border); vertical-align:top;">You want to integrate with existing C# libraries</td>
-            </tr>
-            <tr>
-              <td style="padding:8px 12px; vertical-align:top;">You want the largest FastAPI community</td>
-              <td style="padding:8px 12px; vertical-align:top;">You need strong static typing and Roslyn tooling</td>
-            </tr>
-          </tbody>
-        </table>
-
         <div class="card" style="padding:12px; background:var(--bg-green);">
-          <p style="font-size:13px;"><strong>You can change your mind:</strong> The stack is set once at project init. Changing backends mid-project requires a manual migration. Changing deploy targets (cloud ↔ company server) can be done at any time with "switch to the company server" or "switch to the cloud".</p>
+          <p style="font-size:13px;"><strong>Frontend choice:</strong> During Discovery, Claude asks your frontend preference — Vue + Nuxt 3 (default) or React + Next.js. Both use TailwindCSS, the same service layer pattern, and deploy identically to Vercel.</p>
         </div>
       </div>
     </div>

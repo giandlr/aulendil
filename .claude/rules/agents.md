@@ -29,13 +29,15 @@ Use Task tool aggressively — sub-agents run in parallel and cut wall-clock tim
 - `cd backend && pytest --cov --cov-report=term-missing`
 - `cd backend && ruff check . && mypy .`
 
-**C# backend (when BACKEND_LANGUAGE=csharp):**
-- `cd backend && dotnet test --collect:"XPlat Code Coverage"`
-- `cd backend && dotnet format --verify-no-changes`
-
-**Frontend:**
+**Frontend (Nuxt — default):**
 - `cd frontend && npm run test`
 - `cd frontend && vue-tsc --noEmit`
+- `cd frontend && npm run lint`
+- `cd frontend && npx playwright test` (when Playwright config exists and feature touches UI)
+
+**Frontend (Next.js — when FRONTEND_FRAMEWORK=next):**
+- `cd frontend && npm run test`
+- `cd frontend && tsc --noEmit`
 - `cd frontend && npm run lint`
 - `cd frontend && npx playwright test` (when Playwright config exists and feature touches UI)
 
@@ -54,8 +56,8 @@ If validation fails due to **infrastructure** (Docker not running, Supabase conn
 
 Before writing any backend or frontend code, verify the environment is ready:
 - **Python backend:** Check `backend/requirements.txt` exists AND `backend/.venv/` or site-packages contain FastAPI. If not, prompt: "Run `bash scripts/bootstrap.sh` first — the backend dependencies aren't installed yet."
-- **C# backend:** Check `backend/*.csproj` exists. If `.env` says `BACKEND_LANGUAGE=csharp` but `backend/` contains `main.py` instead of a `.csproj`, warn: "The backend is scaffolded for Python but your .env says C#. Run `bash scripts/bootstrap.sh --fresh` to re-scaffold."
 - **Frontend:** Check `frontend/node_modules/` exists. If not, prompt: "Run `bash scripts/bootstrap.sh` first — frontend dependencies aren't installed yet."
+- **Frontend stack mismatch:** If `.env` says `FRONTEND_FRAMEWORK=next` but `frontend/` contains `nuxt.config.ts` (or vice versa — `.env` says `nuxt` but `frontend/` has `next.config.ts`), warn: "The frontend is scaffolded for [X] but your .env says [Y]. Run `bash scripts/bootstrap.sh --fresh` to re-scaffold."
 
 ### Scope Rules
 

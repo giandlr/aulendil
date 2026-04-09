@@ -14,6 +14,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 <!-- UNRELEASED_INSERT_POINT -->
 
+## [v1.8.0] — 2026-04-09
+
+### Added
+- **Next.js / React as selectable frontend:** Discovery now asks "Frontend preference?" with options Vue + Nuxt 3 (default) or React + Next.js. Selection writes `FRONTEND_FRAMEWORK=nuxt` or `next` to `.env`. Bootstrap branches scaffold, deps, and config accordingly.
+- **Next.js scaffold script:** `.claude/scripts/scaffold-next-frontend.sh` creates App Router structure with `app/layout.tsx`, `page.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`, and Supabase service client.
+- **Next.js rules and reference:** `.claude/rules/next-frontend.md` (Zustand stores, React Hook Form + zod, App Router conventions, custom hooks) and `.claude/refs/next-frontend.md` (detailed patterns, auth middleware, testing examples).
+- **Framework-aware pipeline:** Tier 1 enterprise checks detect `error.tsx` or `error.vue`, `react-hook-form` or `vee-validate`, and `useRole` hook or composable based on `FRONTEND_FRAMEWORK`. Type checking uses `tsc` (Next.js) or `vue-tsc` (Nuxt).
+- **Dynamic dependency resolution:** Bootstrap now queries PyPI for latest stable Python versions at scaffold time, pinning exact versions (`==`) instead of minimums (`>=`). Falls back to hardcoded minimums when offline.
+- **`scripts/refresh-deps.sh`:** Standalone command to update all Python and npm dependencies to latest stable versions. Queries PyPI and npm registry, rewrites requirements.txt and package.json, re-installs.
+- **Frontend stack mismatch detection:** Bootstrap detects when `.env` says one framework but `frontend/` was scaffolded for another, warns instead of silently proceeding.
+
+### Removed
+- **C# / ASP.NET Core backend:** Removed `BACKEND_LANGUAGE` env var, `.claude/rules/csharp-backend.md`, `.claude/refs/csharp-backend.md`, `.claude/scripts/scaffold-csharp-backend.sh`, `.claude/scripts/setup-db-csharp.sh`, and all C# validation commands, scaffold conditionals, and pipeline checks.
+- **Azure deployment target:** Removed `DEPLOY_TARGET` question (always Vercel now), `.claude/scripts/deploy-azure.sh`, `.claude/scripts/setup-azure-db.sh`, `.claude/scripts/scaffold-azure-configs.sh`, `.claude/scripts/generate-azure-handoff-doc.sh`, `.claude/rules/team-isolation.md`, Azure pipeline stages (schema isolation, Docker build), Azure auth (OAuth2 Proxy, dual-mode `get_current_user()`), and Azure-specific hook blocks.
+- **9 files deleted, ~500 net lines removed** across rules, refs, scripts, hooks, docs, and config.
+
+### Changed
+- **Tech stack simplified:** Single backend (FastAPI/Python), single deploy target (Vercel + Supabase Cloud), two frontend options (Nuxt or Next.js).
+- **`update.sh` mentions `refresh-deps.sh`** in post-update summary.
+- **README, manual, architecture diagram** updated to reflect simplified stack and Next.js option.
+
 ## [v1.7.4] — 2026-04-06
 
 ### Added

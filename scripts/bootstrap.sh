@@ -109,6 +109,15 @@ sys_install() {
     return 1
 }
 
+# Helper: get latest stable version from PyPI (falls back to minimum)
+get_latest_pypi_version() {
+    local pkg="$1" fallback="$2"
+    local v
+    v=$(curl -sf --max-time 5 "https://pypi.org/pypi/${pkg}/json" \
+      | grep -o '"version":"[^"]*"' | head -1 | cut -d'"' -f4 2>/dev/null)
+    [ -n "$v" ] && echo "$v" || echo "$fallback"
+}
+
 # Helper: wait for a URL to respond (max 30 seconds)
 wait_for_url() {
     local url="$1"
@@ -184,19 +193,32 @@ echo ""
 # Read stack selection from .env (set by Claude during Discovery)
 # ============================================================
 
-BACKEND_LANGUAGE="python"
+FRONTEND_FRAMEWORK="nuxt"
 INCLUDE_MOBILE="false"
 
 if [ -f ".env" ]; then
-    _bl=$(grep -E "^BACKEND_LANGUAGE=" .env 2>/dev/null | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'")
-    [ -n "$_bl" ] && BACKEND_LANGUAGE="$_bl"
+    _ff=$(grep -E "^FRONTEND_FRAMEWORK=" .env 2>/dev/null | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'")
+    [ -n "$_ff" ] && FRONTEND_FRAMEWORK="$_ff"
     _im=$(grep -E "^INCLUDE_MOBILE=" .env 2>/dev/null | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'")
     [ -n "$_im" ] && INCLUDE_MOBILE="$_im"
 fi
 
-echo "  Backend:  $BACKEND_LANGUAGE"
+echo "  Frontend: $FRONTEND_FRAMEWORK"
 echo "  Mobile:   $INCLUDE_MOBILE"
 echo ""
+
+# Frontend stack mismatch detection
+if [ -d "frontend" ] && [ "${1:-}" != "--fresh" ]; then
+    if [ "$FRONTEND_FRAMEWORK" = "next" ] && [ -f "frontend/nuxt.config.ts" ]; then
+        echo "  WARNING: .env says FRONTEND_FRAMEWORK=next but frontend/ contains nuxt.config.ts"
+        echo "  Run: bash scripts/bootstrap.sh --fresh  to re-scaffold"
+        WARNINGS+=("Frontend framework mismatch: .env=next, scaffold=nuxt")
+    elif [ "$FRONTEND_FRAMEWORK" != "next" ] && [ -f "frontend/next.config.ts" ]; then
+        echo "  WARNING: .env says FRONTEND_FRAMEWORK=nuxt but frontend/ contains next.config.ts"
+        echo "  Run: bash scripts/bootstrap.sh --fresh  to re-scaffold"
+        WARNINGS+=("Frontend framework mismatch: .env=nuxt, scaffold=next")
+    fi
+fi
 
 # ============================================================
 # Phase 1: Scaffold
@@ -207,11 +229,16 @@ echo " Phase 1: Scaffold"
 echo "───────────────────────────────────────────────────────────"
 echo ""
 
-# Frontend — Nuxt 3
+# Frontend — scaffold based on FRONTEND_FRAMEWORK
 if [ ! -d "frontend" ]; then
-    echo "  Creating Nuxt 3 frontend..."
-    mkdir -p frontend
-    cat > frontend/package.json << 'PKGEOF'
+    if [ "$FRONTEND_FRAMEWORK" = "next" ]; then
+        # Next.js scaffold
+        bash .claude/scripts/scaffold-next-frontend.sh
+    else
+        # Nuxt 3 scaffold (default)
+        echo "  Creating Nuxt 3 frontend..."
+        mkdir -p frontend
+        cat > frontend/package.json << 'PKGEOF'
 {
   "name": "frontend",
   "private": true,
@@ -230,34 +257,24 @@ if [ ! -d "frontend" ]; then
   }
 }
 PKGEOF
-    echo "  Created frontend/"
+        echo "  Created frontend/"
+    fi
 else
     echo "  frontend/ already exists — skipping scaffold"
 fi
 
 # Frontend directories
 echo "  Creating frontend directories..."
-for dir in components composables pages stores services types tests; do
-    mkdir -p "frontend/$dir"
-done
-echo "  Created: components, composables, pages, stores, services, types, tests"
-
-# Backend — detect stack mismatch on resume
-if [ -d "backend" ]; then
-    EXISTING_STACK="unknown"
-    if [ -f "backend/main.py" ] || [ -f "backend/requirements.txt" ]; then
-        EXISTING_STACK="python"
-    elif ls backend/*.csproj &>/dev/null 2>&1; then
-        EXISTING_STACK="csharp"
-    fi
-    if [ "$EXISTING_STACK" != "unknown" ] && [ "$EXISTING_STACK" != "$BACKEND_LANGUAGE" ]; then
-        echo ""
-        echo "  WARNING: backend/ is scaffolded for $EXISTING_STACK but .env says BACKEND_LANGUAGE=$BACKEND_LANGUAGE"
-        echo "  To re-scaffold, run: bash scripts/bootstrap.sh --fresh"
-        echo "  Continuing with existing $EXISTING_STACK backend."
-        echo ""
-        BACKEND_LANGUAGE="$EXISTING_STACK"
-    fi
+if [ "$FRONTEND_FRAMEWORK" = "next" ]; then
+    for dir in components hooks stores services types tests app; do
+        mkdir -p "frontend/$dir"
+    done
+    echo "  Created: components, hooks, stores, services, types, tests, app"
+else
+    for dir in components composables pages stores services types tests; do
+        mkdir -p "frontend/$dir"
+    done
+    echo "  Created: components, composables, pages, stores, services, types, tests"
 fi
 
 # Backend — FastAPI
@@ -297,27 +314,42 @@ async def health():
     return {"status": "ok"}
 PYEOF
 
-    # requirements.txt
-    cat > backend/requirements.txt << 'REQEOF'
-fastapi>=0.104.0
-uvicorn[standard]>=0.24.0
-supabase>=2.0.0
-python-dotenv>=1.0.0
-pydantic>=2.0.0
-httpx>=0.25.0
+    # requirements.txt (resolve latest stable, fall back to minimums)
+    echo "  Resolving Python dependency versions..."
+    V_FASTAPI=$(get_latest_pypi_version "fastapi" "0.104.0")
+    V_UVICORN=$(get_latest_pypi_version "uvicorn" "0.24.0")
+    V_SUPABASE=$(get_latest_pypi_version "supabase" "2.0.0")
+    V_DOTENV=$(get_latest_pypi_version "python-dotenv" "1.0.0")
+    V_PYDANTIC=$(get_latest_pypi_version "pydantic" "2.0.0")
+    V_HTTPX=$(get_latest_pypi_version "httpx" "0.25.0")
+    cat > backend/requirements.txt << REQEOF
+fastapi==${V_FASTAPI}
+uvicorn[standard]==${V_UVICORN}
+supabase==${V_SUPABASE}
+python-dotenv==${V_DOTENV}
+pydantic==${V_PYDANTIC}
+httpx==${V_HTTPX}
 REQEOF
 
     # Dev requirements
-    cat > backend/requirements-dev.txt << 'REQEOF'
-ruff>=0.1.0
-mypy>=1.7.0
-bandit>=1.7.0
-pip-audit>=2.6.0
-pytest>=7.4.0
-pytest-cov>=4.1.0
-pytest-asyncio>=0.23.0
-httpx>=0.25.0
+    V_RUFF=$(get_latest_pypi_version "ruff" "0.1.0")
+    V_MYPY=$(get_latest_pypi_version "mypy" "1.7.0")
+    V_BANDIT=$(get_latest_pypi_version "bandit" "1.7.0")
+    V_PIPAUDIT=$(get_latest_pypi_version "pip-audit" "2.6.0")
+    V_PYTEST=$(get_latest_pypi_version "pytest" "7.4.0")
+    V_PYTESTCOV=$(get_latest_pypi_version "pytest-cov" "4.1.0")
+    V_PYTESTASYNC=$(get_latest_pypi_version "pytest-asyncio" "0.23.0")
+    cat > backend/requirements-dev.txt << REQEOF
+ruff==${V_RUFF}
+mypy==${V_MYPY}
+bandit==${V_BANDIT}
+pip-audit==${V_PIPAUDIT}
+pytest==${V_PYTEST}
+pytest-cov==${V_PYTESTCOV}
+pytest-asyncio==${V_PYTESTASYNC}
+httpx==${V_HTTPX}
 REQEOF
+    echo "  Pinned Python deps to latest stable versions"
 
     # __init__.py files
     for dir in routes services models middleware tests; do
@@ -379,16 +411,6 @@ PYEOF
     echo "  Created backend/ with main.py, requirements, and directory structure"
 else
     echo "  backend/ already exists — skipping scaffold"
-fi
-
-# C# backend scaffold (only when BACKEND_LANGUAGE=csharp and backend/ not yet present)
-if [ "$BACKEND_LANGUAGE" = "csharp" ] && [ ! -f "backend/backend.csproj" ]; then
-    echo "  Switching to C# backend scaffold..."
-    if [ -f ".claude/scripts/scaffold-csharp-backend.sh" ]; then
-        bash .claude/scripts/scaffold-csharp-backend.sh
-    else
-        echo "  WARNING: scaffold-csharp-backend.sh not found — skipping C# scaffold"
-    fi
 fi
 
 # Mobile — Flutter (only when INCLUDE_MOBILE=true and mobile/ not yet present)
@@ -585,23 +607,43 @@ echo "  Installing packages (this may take a minute)..."
 npm install 2>&1 | tail -5
 echo "  Packages installed."
 
-# Install project dependencies
-npm install @supabase/supabase-js @pinia/nuxt pinia 2>&1 | tail -3
-npm install @vee-validate/nuxt @vee-validate/zod vee-validate zod@^3.24.0 2>&1 | tail -3
-INSTALLED+=("Supabase JS client, Pinia, vee-validate, zod")
+if [ "$FRONTEND_FRAMEWORK" = "next" ]; then
+    # Next.js project dependencies
+    npm install @supabase/supabase-js zustand 2>&1 | tail -3
+    npm install react-hook-form @hookform/resolvers zod@^3.24.0 2>&1 | tail -3
+    INSTALLED+=("Supabase JS client, Zustand, React Hook Form, zod")
 
-# Install Tailwind CSS
-npm install -D tailwindcss @tailwindcss/vite 2>&1 | tail -3
-INSTALLED+=("TailwindCSS")
+    # Install Tailwind CSS
+    npm install -D tailwindcss @tailwindcss/postcss 2>&1 | tail -3
+    INSTALLED+=("TailwindCSS")
 
-# Install dev tools
-echo "  Installing dev tools..."
-npm install -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin 2>&1 | tail -3
-npm install -D prettier eslint-config-prettier 2>&1 | tail -3
-npm install -D vue-tsc typescript 2>&1 | tail -3
-npm install -D vitest @vue/test-utils happy-dom 2>&1 | tail -3
-INSTALLED+=("ESLint, Prettier, vue-tsc, Vitest")
-echo "  Dev tools installed."
+    # Install dev tools
+    echo "  Installing dev tools..."
+    npm install -D eslint eslint-config-next 2>&1 | tail -3
+    npm install -D prettier eslint-config-prettier 2>&1 | tail -3
+    npm install -D typescript @types/react @types/node 2>&1 | tail -3
+    npm install -D vitest @vitejs/plugin-react @testing-library/react @testing-library/jest-dom @testing-library/user-event happy-dom 2>&1 | tail -3
+    INSTALLED+=("ESLint, Prettier, TypeScript, Vitest, Testing Library")
+    echo "  Dev tools installed."
+else
+    # Nuxt/Vue project dependencies
+    npm install @supabase/supabase-js @pinia/nuxt pinia 2>&1 | tail -3
+    npm install @vee-validate/nuxt @vee-validate/zod vee-validate zod@^3.24.0 2>&1 | tail -3
+    INSTALLED+=("Supabase JS client, Pinia, vee-validate, zod")
+
+    # Install Tailwind CSS
+    npm install -D tailwindcss @tailwindcss/vite 2>&1 | tail -3
+    INSTALLED+=("TailwindCSS")
+
+    # Install dev tools
+    echo "  Installing dev tools..."
+    npm install -D eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin 2>&1 | tail -3
+    npm install -D prettier eslint-config-prettier 2>&1 | tail -3
+    npm install -D vue-tsc typescript 2>&1 | tail -3
+    npm install -D vitest @vue/test-utils happy-dom 2>&1 | tail -3
+    INSTALLED+=("ESLint, Prettier, vue-tsc, Vitest")
+    echo "  Dev tools installed."
+fi
 
 # Install Playwright for e2e testing
 echo "  Installing Playwright (this may take a minute)..."
@@ -609,6 +651,10 @@ npm install -D @playwright/test @axe-core/playwright 2>&1 | tail -3
 npx playwright install chromium 2>&1 | tail -5
 INSTALLED+=("Playwright (e2e testing)")
 echo "  Playwright installed."
+
+# Framework-specific configuration files
+if [ "$FRONTEND_FRAMEWORK" != "next" ]; then
+# --- Nuxt-specific configuration ---
 
 # Create/update nuxt.config.ts
 cat > nuxt.config.ts << 'NUXTEOF'
@@ -1010,9 +1056,25 @@ export function useSupabaseClient(): SupabaseClient | null {
 }
 TSEOF
 
-# Add test script to package.json
+fi  # end Nuxt-specific configuration
+
+# Add test/lint scripts to package.json (framework-aware)
 if command -v node &>/dev/null; then
-    node -e "
+    if [ "$FRONTEND_FRAMEWORK" = "next" ]; then
+        node -e "
+const fs = require('fs');
+const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+pkg.scripts = pkg.scripts || {};
+pkg.scripts.test = 'vitest run';
+pkg.scripts['test:watch'] = 'vitest';
+pkg.scripts.lint = 'next lint';
+pkg.scripts['type-check'] = 'tsc --noEmit';
+pkg.scripts['test:e2e'] = 'playwright test';
+pkg.scripts['test:e2e:ui'] = 'playwright test --ui';
+fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+"
+    else
+        node -e "
 const fs = require('fs');
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 pkg.scripts = pkg.scripts || {};
@@ -1024,6 +1086,7 @@ pkg.scripts['test:e2e'] = 'playwright test';
 pkg.scripts['test:e2e:ui'] = 'playwright test --ui';
 fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
 "
+    fi
 fi
 
 cd ..

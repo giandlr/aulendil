@@ -8,7 +8,6 @@ set -uo pipefail
 [[ "${AULENDIL_DEBUG:-}" == "1" ]] && set -x
 
 GATE_LEVEL="${1:-mvp}"
-DEPLOY_TARGET="${DEPLOY_TARGET:-vercel}"
 BLOCKERS=()
 
 echo "==========================================================="
@@ -27,13 +26,22 @@ fi
 if [[ "$GATE_LEVEL" == "team" || "$GATE_LEVEL" == "production" ]]; then
     RBAC_OK=true
     [[ ! -f "supabase/migrations/00000000000001_rbac.sql" ]] && RBAC_OK=false
-    [[ ! -f "backend/middleware/rbac.py" ]] && [[ ! -f "backend/Middleware/RbacMiddleware.cs" ]] && RBAC_OK=false
-    [[ ! -f "frontend/composables/useRole.ts" ]] && RBAC_OK=false
+    [[ ! -f "backend/middleware/rbac.py" ]] && RBAC_OK=false
+
+    CG_FE_FRAMEWORK="nuxt"
+    [[ -f ".env" ]] && CG_FE_FRAMEWORK=$(grep -E "^FRONTEND_FRAMEWORK=" .env 2>/dev/null | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'" || echo "nuxt")
+    [[ -z "$CG_FE_FRAMEWORK" ]] && CG_FE_FRAMEWORK="nuxt"
+
+    if [[ "$CG_FE_FRAMEWORK" == "next" ]]; then
+        [[ ! -f "frontend/hooks/use-role.ts" ]] && [[ ! -f "frontend/hooks/useRole.ts" ]] && RBAC_OK=false
+    else
+        [[ ! -f "frontend/composables/useRole.ts" ]] && RBAC_OK=false
+    fi
 
     if $RBAC_OK; then
         echo "  + RBAC files present"
     else
-        BLOCKERS+=("RBAC files missing (migration, middleware, or useRole composable)")
+        BLOCKERS+=("RBAC files missing (migration, middleware, or useRole composable/hook)")
     fi
 fi
 
@@ -41,7 +49,6 @@ fi
 if [[ "$GATE_LEVEL" == "team" || "$GATE_LEVEL" == "production" ]]; then
     HEALTH_FOUND=false
     grep -rqlE '@(app|router)\.(get|route).*["\x27]/health["\x27]' backend/ 2>/dev/null && HEALTH_FOUND=true
-    grep -rqlE 'MapGet.*"/health"' backend/ 2>/dev/null && HEALTH_FOUND=true
 
     if $HEALTH_FOUND; then
         echo "  + Health endpoint found"
@@ -68,30 +75,20 @@ if [[ "$GATE_LEVEL" == "production" && -d "supabase/migrations" ]]; then
     fi
 fi
 
-# --- Check 5: Schema isolation (Azure + production) ---
-if [[ "$DEPLOY_TARGET" == "azure" && "$GATE_LEVEL" == "production" ]]; then
-    if [[ -z "${APP_SCHEMA:-}" ]]; then
-        BLOCKERS+=("APP_SCHEMA not set (required for Azure production)")
-    else
-        echo "  + APP_SCHEMA=$APP_SCHEMA"
-    fi
-fi
-
-# --- Check 6: Docker (Azure) ---
-if [[ "$DEPLOY_TARGET" == "azure" ]]; then
-    if [[ -f "Dockerfile" ]]; then
-        echo "  + Dockerfile exists"
-    else
-        BLOCKERS+=("Dockerfile missing (required for Azure deployment)")
-    fi
-fi
-
-# --- Check 7: Lint/type-check ---
+# --- Check 5: Lint/type-check (framework-aware) ---
 if command -v npx &>/dev/null && [[ -f "frontend/package.json" ]]; then
-    if cd frontend && npx vue-tsc --noEmit 2>/dev/null; then
-        echo "  + Frontend type check passes"
+    if [[ "${CG_FE_FRAMEWORK:-nuxt}" == "next" ]]; then
+        if cd frontend && npx tsc --noEmit 2>/dev/null; then
+            echo "  + Frontend type check passes"
+        else
+            BLOCKERS+=("Frontend type check (tsc) has errors")
+        fi
     else
-        BLOCKERS+=("Frontend type check (vue-tsc) has errors")
+        if cd frontend && npx vue-tsc --noEmit 2>/dev/null; then
+            echo "  + Frontend type check passes"
+        else
+            BLOCKERS+=("Frontend type check (vue-tsc) has errors")
+        fi
     fi
     cd - &>/dev/null || true
 fi

@@ -2,6 +2,8 @@
 globs: ["frontend/components/**", "frontend/pages/**", "frontend/composables/**", "frontend/stores/**", "frontend/services/**"]
 ---
 
+**Note:** These rules apply to Vue/Nuxt projects (`FRONTEND_FRAMEWORK=nuxt`, the default). For React/Next.js projects, see `next-frontend.md`. Design rules (Typography, Color, Motion, Spatial Composition, Backgrounds, NEVER list) are shared across both frameworks.
+
 ## Design
 
 Every frontend file — pages, components, and layouts — must meet production design quality. Apply these principles automatically; do not wait to be asked.
@@ -73,6 +75,4 @@ Every async operation needs loading, error, and empty states. Loading: skeleton/
 
 ## CSRF
 
-- JWT-based auth (Supabase mode): No CSRF protection needed — tokens are sent via Authorization header, not cookies
-- Cookie-based auth (Azure OAuth2 Proxy mode): Proxy handles CSRF via SameSite cookies. For custom forms that POST to non-API endpoints, validate `Origin` header server-side
-- Never set `SameSite=None` on auth-related cookies
+- No CSRF protection needed — authentication uses Bearer tokens in the Authorization header, not cookies. No CSRF tokens needed.

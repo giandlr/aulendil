@@ -69,6 +69,7 @@ done
 mkdir -p "$PROJECT_DIR/scripts"
 cp "$SCRIPT_DIR/scripts/bootstrap.sh" "$PROJECT_DIR/scripts/bootstrap.sh"
 cp "$SCRIPT_DIR/scripts/init.sh" "$PROJECT_DIR/scripts/init.sh"
+cp "$SCRIPT_DIR/scripts/refresh-deps.sh" "$PROJECT_DIR/scripts/refresh-deps.sh" 2>/dev/null || true
 
 # Cloud deployment scripts
 for script in deploy-cloud.sh scaffold-cloud-configs.sh generate-handoff-doc.sh setup-supabase-cloud.sh; do
@@ -103,6 +104,7 @@ case "$(uname -s)" in
     find "$PROJECT_DIR/.claude/scripts" -name "*.sh" -exec chmod +x {} \;
     chmod +x "$PROJECT_DIR/scripts/bootstrap.sh"
     chmod +x "$PROJECT_DIR/scripts/init.sh"
+    chmod +x "$PROJECT_DIR/scripts/refresh-deps.sh" 2>/dev/null || true
     ;;
 esac
 

@@ -24,8 +24,8 @@ This application uses a decoupled frontend/backend architecture with Supabase as
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Frontend framework | Nuxt 3 / Vue 3 | File-based routing, SSR support, excellent DX, composition API |
-| State management | Pinia | Official Vue state manager, TypeScript native, devtools support |
+| Frontend framework | Nuxt 3 / Vue 3 (default) or Next.js / React | Selected during Discovery. Vue: file-based routing, composition API. React: App Router, hooks. |
+| State management | Pinia (Vue) or Zustand (React) | Framework-native state management, TypeScript, devtools support |
 | Styling | TailwindCSS | Utility-first, no context switching, consistent design system |
 | Backend framework | FastAPI | Async native, auto-generated OpenAPI docs, Pydantic validation |
 | Database | Supabase (PostgreSQL) | Managed PostgreSQL with RLS, Auth, Storage, Realtime built-in |
@@ -171,35 +171,6 @@ When the app needs to serve both internal users and external parties (suppliers,
 
 **How it works:** The `api/index.py` adapter imports the existing FastAPI app from `backend/main.py`. Vercel auto-detects it as an ASGI app and serves it at `/api/*`. Local development with `uvicorn` is completely unchanged — the adapter is only used by Vercel's Python runtime.
 
-## C# Backend Architecture
-
-When `BACKEND_LANGUAGE=csharp`, the Python FastAPI backend is replaced with ASP.NET Core 8 Minimal APIs + EF Core + Npgsql. The rest of the architecture (Nuxt 3 frontend, Supabase, deploy targets) is unchanged.
-
-```
-┌─────────────────┐     ┌──────────────────────────┐     ┌─────────────────────┐
-│   Nuxt 3 App    │────▶│   ASP.NET Core 8 API      │────▶│     Supabase        │
-│   (Vercel/Azure)│     │   (Minimal APIs)          │     │  PostgreSQL + RLS   │
-│                 │     │                            │     └─────────────────────┘
-│  Supabase JS ──────────────────────────────────────────▶  (direct, same as Python)
-│  (anon key)     │     │  Routes/        (thin)    │
-│                 │     │  Services/      (logic)   │
-│                 │     │  Data/          (EF Core) │
-│                 │     │  Middleware/    (auth, ID) │
-└─────────────────┘     └──────────────────────────┘
-```
-
-**Same response envelope:** `{"status": "ok|error", "data": ..., "meta": {"request_id": "..."}}` — enforced via `ApiResponse<T>` record type in `Models/`.
-
-**Auth:** JWT Bearer verification against Supabase JWKS endpoint (Vercel/local) or `X-Forwarded-Email` from OAuth2 Proxy (Azure). Same dual-mode pattern as Python.
-
-**Migrations:** EF Core migrations live in `backend/Data/Migrations/` and are committed to git. `dotnet ef database update` applies them.
-
-**Deploy (Vercel):** `dotnet publish` → serverless function adapter. Deploy scripts detect `BACKEND_LANGUAGE=csharp` and build accordingly.
-
-**Deploy (Azure):** Multi-stage Dockerfile uses `mcr.microsoft.com/dotnet/aspnet:8.0` runtime image instead of Python.
-
----
-
 ## Mobile Architecture (Flutter)
 
 When `INCLUDE_MOBILE=true`, a `mobile/` Flutter directory is scaffolded alongside `frontend/`. Both connect to the **same Supabase instance and backend API** — no separate infrastructure is needed.
@@ -226,48 +197,3 @@ When `INCLUDE_MOBILE=true`, a `mobile/` Flutter directory is scaffolded alongsid
 ```
 
 See `docs/mobile-architecture.md` for detailed mobile layer documentation.
-
----
-
-## Azure Deployment Architecture
-
-When `DEPLOY_TARGET=azure`, the app runs as a Docker container on Azure Container Apps.
-
-```
-┌──────────────────────────────────────────────────────────┐
-│                Azure Container Apps                        │
-│                                                            │
-│  ┌────────────────────────────────────────────────────┐   │
-│  │  Docker Container                                   │   │
-│  │  ┌──────────────────┐  ┌──────────────────────┐   │   │
-│  │  │  Nuxt 3 SSR       │  │  FastAPI (uvicorn)    │   │   │
-│  │  │  (node server)    │  │  /api/*               │   │   │
-│  │  └──────────────────┘  └──────────────────────┘   │   │
-│  └────────────────────────────────────────────────────┘   │
-│                                                            │
-│  OAuth2 Proxy (sidecar) ← Google SSO                      │
-│  Forwards X-Forwarded-Email to app                        │
-└──────────────────────────────────────────────────────────┘
-           │                         │
-           ▼                         ▼
-┌──────────────────┐     ┌──────────────────────────────┐
-│  Azure Blob       │     │  Shared PostgreSQL Server     │
-│  Storage          │     │  schema: APP_SCHEMA           │
-│  BLOB_CONTAINER   │     │  role:  APP_SCHEMA_owner      │
-│  = <app_name>     │     │  (one app, one schema)        │
-└──────────────────┘     └──────────────────────────────┘
-```
-
-**Authentication in Azure mode:** Google SSO is handled by OAuth2 Proxy before requests reach the app. The app receives `X-Forwarded-Email` and `X-Forwarded-User` headers. `get_current_user()` reads identity from the header instead of a Supabase JWT. RBAC (roles, permissions) is still managed via the `user_roles` table — Google is identity-only.
-
-**App isolation:** Each app gets its own PostgreSQL schema (`APP_SCHEMA=<app_name>`) and its own Blob Storage container (`BLOB_CONTAINER=<app_name>`). Multiple apps share the same database server and storage account — IT provisions both once, each app stays isolated.
-
-**Environment variables added for Azure mode:**
-
-| Variable | Where | Description |
-|----------|-------|-------------|
-| `DEPLOY_TARGET` | Backend | Set to `azure` to enable Azure auth path |
-| `APP_SCHEMA` | Backend | PostgreSQL schema name for this app (e.g. `hr_leave_tracker`) |
-| `BLOB_CONTAINER` | Backend | Azure Blob Storage container name for this app |
-| `AZURE_STORAGE_CONNECTION_STRING` | Backend | Azure Storage account connection string |
-| `AZURE_ALLOWED_EMAIL_DOMAIN` | OAuth2 Proxy | Restricts login to this email domain (e.g. `company.com`) |

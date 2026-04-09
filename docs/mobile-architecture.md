@@ -2,7 +2,7 @@
 
 ## Overview
 
-When `INCLUDE_MOBILE=true` is set (or the user selects "Mobile app" in Discovery Mode), Aulendil scaffolds a `mobile/` Flutter directory alongside the existing web frontend. The mobile app connects to the **same Supabase backend** and optional FastAPI / ASP.NET Core API, sharing auth, data, and realtime features.
+When `INCLUDE_MOBILE=true` is set (or the user selects "Mobile app" in Discovery Mode), Aulendil scaffolds a `mobile/` Flutter directory alongside the existing web frontend. The mobile app connects to the **same Supabase backend** and FastAPI API, sharing auth, data, and realtime features.
 
 ```
 ┌─────────────────┐   ┌─────────────────┐
@@ -13,7 +13,6 @@ When `INCLUDE_MOBILE=true` is set (or the user selects "Mobile app" in Discovery
 │  (anon key)     │   │  (anon key)      │
 │                 │   │                  │
 │  REST → FastAPI │   │  REST → FastAPI  │
-│  or C# backend  │   │  or C# backend   │
 └────────┬────────┘   └────────┬─────────┘
          │                     │
          └──────────┬──────────┘
@@ -95,7 +94,7 @@ Stream<List<Item>> itemsStream(ItemsStreamRef ref) {
 |----------|-----------|-------------|
 | `SUPABASE_URL` | `--dart-define` or `.env` | Supabase project URL |
 | `SUPABASE_ANON_KEY` | `--dart-define` or `.env` | Public API key (respects RLS) |
-| `API_BASE_URL` | `--dart-define` or `.env` | FastAPI / C# backend base URL |
+| `API_BASE_URL` | `--dart-define` or `.env` | FastAPI backend base URL |
 
 ## Testing Strategy
 

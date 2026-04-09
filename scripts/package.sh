@@ -38,6 +38,7 @@ mkdir -p "$STAGE/scripts"
 cp scripts/bootstrap.sh "$STAGE/scripts/"
 cp scripts/init.sh "$STAGE/scripts/"
 cp scripts/stop.sh "$STAGE/scripts/"
+cp scripts/refresh-deps.sh "$STAGE/scripts/"
 
 # docs/
 mkdir -p "$STAGE/docs"

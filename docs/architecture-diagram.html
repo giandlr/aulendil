@@ -128,10 +128,10 @@
     <text x="56" y="487" fill="var(--text)" font-size="10" font-weight="600">workflow.md</text>
     <text x="56" y="499" fill="var(--text-dim)" font-size="8">Master — stack, modes</text>
   </g>
-  <g class="node" data-tip=".claude/rules/auth.md — JWT, RBAC, Azure OAuth2 Proxy, session management, password security">
+  <g class="node" data-tip=".claude/rules/auth.md — JWT, RBAC, session management, password security, CSRF">
     <rect x="46" y="514" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
     <text x="56" y="529" fill="var(--text)" font-size="10" font-weight="500">auth.md</text>
-    <text x="56" y="541" fill="var(--text-dim)" font-size="8">JWT, RBAC, OAuth2</text>
+    <text x="56" y="541" fill="var(--text-dim)" font-size="8">JWT, RBAC, CSRF</text>
   </g>
   <g class="node" data-tip=".claude/rules/api.md — response envelope, pagination, rate limiting, HTTP status codes">
     <rect x="46" y="556" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
@@ -143,7 +143,7 @@
     <text x="56" y="613" fill="var(--text)" font-size="10" font-weight="500">database.md</text>
     <text x="56" y="625" fill="var(--text-dim)" font-size="8">RLS, soft deletes</text>
   </g>
-  <g class="node" data-tip=".claude/rules/frontend.md — design principles, service layer, Pinia, accessibility, TailwindCSS">
+  <g class="node" data-tip=".claude/rules/frontend.md — design principles, service layer, Pinia (Vue) or Zustand (React), accessibility, TailwindCSS">
     <rect x="46" y="640" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
     <text x="56" y="655" fill="var(--text)" font-size="10" font-weight="500">frontend.md</text>
     <text x="56" y="667" fill="var(--text-dim)" font-size="8">Design, services, a11y</text>
@@ -163,16 +163,6 @@
     <rect x="226" y="556" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
     <text x="236" y="571" fill="var(--text)" font-size="10" font-weight="500">mobile.md</text>
     <text x="236" y="583" fill="var(--text-dim)" font-size="8">Flutter / Riverpod</text>
-  </g>
-  <g class="node" data-tip=".claude/rules/csharp-backend.md — ASP.NET Core 8, EF Core, parameterized SQL, xUnit">
-    <rect x="226" y="598" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
-    <text x="236" y="613" fill="var(--text)" font-size="10" font-weight="500">csharp-backend.md</text>
-    <text x="236" y="625" fill="var(--text-dim)" font-size="8">ASP.NET Core / EF</text>
-  </g>
-  <g class="node" data-tip=".claude/rules/team-isolation.md — Azure schema isolation, storage isolation per app">
-    <rect x="226" y="640" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
-    <text x="236" y="655" fill="var(--text)" font-size="10" font-weight="500">team-isolation.md</text>
-    <text x="236" y="667" fill="var(--text-dim)" font-size="8">Azure schema isolation</text>
   </g>
 
   <text x="50" y="698" fill="var(--text-dim)" font-size="9" font-style="italic">Auto-injected into every Claude message</text>
@@ -233,11 +223,6 @@
     <rect x="226" y="1032" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
     <text x="236" y="1047" fill="var(--text)" font-size="10" font-weight="500">baseline-recipes.md</text>
     <text x="236" y="1059" fill="var(--text-dim)" font-size="8">Build patterns</text>
-  </g>
-  <g class="node" data-tip=".claude/refs/csharp-backend.md — full ASP.NET Core 8 spec, EF Core, middleware, DI">
-    <rect x="46" y="1074" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
-    <text x="56" y="1089" fill="var(--text)" font-size="10" font-weight="500">csharp-backend.md</text>
-    <text x="56" y="1101" fill="var(--text-dim)" font-size="8">Full C# spec</text>
   </g>
   <g class="node" data-tip=".claude/refs/mobile.md — full Flutter spec, Riverpod, supabase_flutter, feature modules">
     <rect x="226" y="1074" width="168" height="34" rx="6" fill="#2ecc40" fill-opacity="0.08" stroke="#2ecc40" stroke-opacity="0.2"/>
@@ -409,11 +394,6 @@
   <rect x="850" y="760" width="370" height="10" fill="#8139ee" fill-opacity="0.05"/>
   <text x="1035" y="761" text-anchor="middle" fill="#8139ee" font-size="11" font-weight="700" letter-spacing="1">DEPLOY FLOW — "ship it"</text>
 
-  <g class="node" data-tip="Ask: company server (Azure) or cloud (Vercel)? Set DEPLOY_TARGET in .env">
-    <rect x="866" y="782" width="338" height="34" rx="7" fill="#8139ee" fill-opacity="0.08" stroke="#8139ee" stroke-opacity="0.2"/>
-    <text x="876" y="798" fill="var(--text)" font-size="11" font-weight="500">Set DEPLOY_TARGET</text>
-    <text x="876" y="810" fill="var(--text-dim)" font-size="9">Cloud (Vercel) or Company Server (Azure)</text>
-  </g>
   <g class="node" data-tip="Ask gate level: MVP (just me), Team (colleagues), Production (external users)">
     <rect x="866" y="824" width="338" height="34" rx="7" fill="#8139ee" fill-opacity="0.08" stroke="#8139ee" stroke-opacity="0.2"/>
     <text x="876" y="840" fill="var(--text)" font-size="11" font-weight="500">Choose Gate Level</text>
@@ -533,22 +513,17 @@
     <text x="1326" y="761" fill="var(--text)" font-size="10" font-weight="600">invoke-opus-reviewer.sh</text>
     <text x="1326" y="775" fill="var(--text-dim)" font-size="9">Isolated Opus 4.6 — diff + tests + enterprise context</text>
   </g>
-  <g class="node" data-tip="deploy-cloud.sh (Vercel + Supabase Cloud) and deploy-azure.sh (Container Apps + OAuth2 Proxy)">
+  <g class="node" data-tip="deploy-cloud.sh — Vercel + Supabase Cloud deployment">
     <rect x="1316" y="790" width="178" height="34" rx="6" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
     <text x="1326" y="805" fill="var(--text)" font-size="10" font-weight="500">deploy-cloud.sh</text>
     <text x="1326" y="817" fill="var(--text-dim)" font-size="8">Vercel + Supabase</text>
   </g>
-  <g class="node" data-tip="deploy-azure.sh — Azure Container Apps + OAuth2 Proxy + schema isolation">
-    <rect x="1506" y="790" width="178" height="34" rx="6" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
-    <text x="1516" y="805" fill="var(--text)" font-size="10" font-weight="500">deploy-azure.sh</text>
-    <text x="1516" y="817" fill="var(--text-dim)" font-size="8">Azure + OAuth2</text>
-  </g>
-  <g class="node" data-tip="scaffold-cloud-configs.sh, scaffold-azure-configs.sh — generate vercel.json, Dockerfile, proxy config">
+  <g class="node" data-tip="scaffold-cloud-configs.sh — generate vercel.json, API adapter, CORS config">
     <rect x="1316" y="832" width="178" height="34" rx="6" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
     <text x="1326" y="847" fill="var(--text)" font-size="10" font-weight="500">scaffold-*.sh</text>
     <text x="1326" y="859" fill="var(--text-dim)" font-size="8">Config generators</text>
   </g>
-  <g class="node" data-tip="setup-supabase-cloud.sh, setup-azure-db.sh — provision DB, schema isolation, app-scoped role">
+  <g class="node" data-tip="setup-supabase-cloud.sh — provision Supabase Cloud DB and link project">
     <rect x="1506" y="832" width="178" height="34" rx="6" fill="#e53935" fill-opacity="0.08" stroke="#e53935" stroke-opacity="0.2"/>
     <text x="1516" y="847" fill="var(--text)" font-size="10" font-weight="500">setup-*.sh</text>
     <text x="1516" y="859" fill="var(--text-dim)" font-size="8">DB + infra setup</text>
@@ -594,17 +569,17 @@
   <rect x="1790" y="220" width="290" height="10" fill="#00897b" fill-opacity="0.05"/>
   <text x="1935" y="221" text-anchor="middle" fill="#00897b" font-size="11" font-weight="700" letter-spacing="1">GENERATED OUTPUT</text>
 
-  <g class="node" data-tip="frontend/ — Nuxt 3, Vue 3 Composition API, TypeScript, TailwindCSS, Pinia, vee-validate + zod">
+  <g class="node" data-tip="frontend/ — Nuxt 3 + Vue 3 (default) or Next.js + React, TypeScript, TailwindCSS, Pinia or Zustand, vee-validate + zod or React Hook Form + zod">
     <rect x="1806" y="244" width="258" height="44" rx="7" fill="#00897b" fill-opacity="0.1" stroke="#00897b" stroke-opacity="0.3"/>
     <rect x="1806" y="244" width="4" height="44" rx="2" fill="#00897b"/>
     <text x="1826" y="264" fill="var(--text)" font-size="12" font-weight="600">frontend/</text>
-    <text x="1826" y="280" fill="var(--text-dim)" font-size="10">Nuxt 3 / Vue 3 / TailwindCSS</text>
+    <text x="1826" y="280" fill="var(--text-dim)" font-size="10">Nuxt 3 / Vue 3 or Next.js / React</text>
   </g>
-  <g class="node" data-tip="backend/ — FastAPI (Python) or ASP.NET Core 8, routes/services/models/middleware/tests">
+  <g class="node" data-tip="backend/ — FastAPI (Python), routes/services/models/middleware/tests">
     <rect x="1806" y="300" width="258" height="44" rx="7" fill="#00897b" fill-opacity="0.1" stroke="#00897b" stroke-opacity="0.3"/>
     <rect x="1806" y="300" width="4" height="44" rx="2" fill="#00897b"/>
     <text x="1826" y="320" fill="var(--text)" font-size="12" font-weight="600">backend/</text>
-    <text x="1826" y="336" fill="var(--text-dim)" font-size="10">FastAPI or ASP.NET Core 8</text>
+    <text x="1826" y="336" fill="var(--text-dim)" font-size="10">FastAPI (Python 3.9+)</text>
   </g>
   <g class="node" data-tip="mobile/ — Flutter (optional), Riverpod state, supabase_flutter, go_router">
     <rect x="1806" y="356" width="258" height="44" rx="7" fill="#00897b" fill-opacity="0.1" stroke="#00897b" stroke-opacity="0.3"/>
@@ -618,17 +593,17 @@
     <text x="1826" y="432" fill="var(--text)" font-size="12" font-weight="600">supabase/migrations/</text>
     <text x="1826" y="448" fill="var(--text-dim)" font-size="10">SQL + RLS + indexes</text>
   </g>
-  <g class="node" data-tip="Tests alongside all code — pytest, Vitest, Playwright, xUnit, flutter_test">
+  <g class="node" data-tip="Tests alongside all code — pytest, Vitest, Playwright, flutter_test">
     <rect x="1806" y="468" width="258" height="44" rx="7" fill="#00897b" fill-opacity="0.1" stroke="#00897b" stroke-opacity="0.3"/>
     <rect x="1806" y="468" width="4" height="44" rx="2" fill="#00897b"/>
     <text x="1826" y="488" fill="var(--text)" font-size="12" font-weight="600">Tests</text>
-    <text x="1826" y="504" fill="var(--text-dim)" font-size="10">pytest | Vitest | Playwright | xUnit</text>
+    <text x="1826" y="504" fill="var(--text-dim)" font-size="10">pytest | Vitest | Playwright</text>
   </g>
-  <g class="node" data-tip="Live deployment — Vercel (frontend + API) or Azure Container Apps (Docker + OAuth2 Proxy)">
+  <g class="node" data-tip="Live deployment — Vercel (frontend + API) + Supabase Cloud (database)">
     <rect x="1806" y="524" width="258" height="44" rx="7" fill="#00897b" fill-opacity="0.12" stroke="#00897b" stroke-opacity="0.4"/>
     <rect x="1806" y="524" width="4" height="44" rx="2" fill="#00897b"/>
     <text x="1826" y="544" fill="var(--text)" font-size="12" font-weight="600">Live Deployment</text>
-    <text x="1826" y="560" fill="var(--text-dim)" font-size="10">Vercel or Azure Container Apps</text>
+    <text x="1826" y="560" fill="var(--text-dim)" font-size="10">Vercel + Supabase Cloud</text>
   </g>
   <g class="node" data-tip="brief.md + status.md + BASELINE.md — project planning and tracking artifacts">
     <rect x="1806" y="580" width="258" height="38" rx="7" fill="#00897b" fill-opacity="0.08" stroke="#00897b" stroke-opacity="0.2"/>

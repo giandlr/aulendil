@@ -22,10 +22,10 @@ Progress tracking: Write `.claude/session/plan.md` with checkboxes for multi-ste
 ```json
 {
   "timestamp": "2026-03-17T14:30:00Z",
-  "stage": "deploy-azure",
-  "error": "Docker push failed",
-  "log_file": ".claude/tmp/docker-build.log",
-  "recovery": "Check ACR credentials and retry"
+  "stage": "deploy-cloud",
+  "error": "Vercel deployment failed",
+  "log_file": ".claude/tmp/deploy-output.txt",
+  "recovery": "Check Vercel credentials and retry"
 }
 ```
 On session start, if this file exists, read it and offer recovery: *"It looks like the last deployment failed at [stage]. Want me to retry?"* Delete the file after successful recovery.

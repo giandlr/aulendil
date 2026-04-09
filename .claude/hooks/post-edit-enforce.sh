@@ -449,51 +449,6 @@ elif [[ "$MODE" == "deploy" ]]; then
         fi
     fi
 
-    # --------------------------------------------------------
-    # --------------------------------------------------------
-    # Azure-specific blocks (only when DEPLOY_TARGET=azure)
-    # --------------------------------------------------------
-    DEPLOY_TARGET_VAL=$(cat .env 2>/dev/null | grep '^DEPLOY_TARGET=' | cut -d= -f2 | tr -d '[:space:]' || echo "")
-    if [[ "$DEPLOY_TARGET_VAL" == "azure" ]]; then
-
-        # Block migrations that reference schemas other than APP_SCHEMA
-        if $IS_MIGRATION; then
-            AZURE_APP_SCHEMA=$(cat .env 2>/dev/null | grep '^APP_SCHEMA=' | cut -d= -f2 | tr -d '[:space:]' || echo "")
-            if [[ -n "$AZURE_APP_SCHEMA" ]]; then
-                            if echo "$FILE_CONTENT" | grep -qiE 'SET\s+search_path\s+TO\s+'; then
-                    OTHER=$(echo "$FILE_CONTENT" | grep -iE 'SET\s+search_path\s+TO\s+' \
-                        | grep -v "$AZURE_APP_SCHEMA" | grep -v "public" || true)
-                    if [[ -n "$OTHER" ]]; then
-                        BLOCKED=true
-                        BLOCK_MESSAGES+=("This migration sets search_path to a schema other than $AZURE_APP_SCHEMA. Each app must use only its own schema (APP_SCHEMA env var).")
-                        echo "[$TIMESTAMP] BLOCKED (azure): Migration references wrong schema in $FILE_PATH" >> "$AUDIT_LOG"
-                    fi
-                fi
-            fi
-        fi
-
-        # Block direct Google Auth API calls (must go through OAuth2 Proxy)
-        if [[ "$FILE_EXT" =~ ^(ts|tsx|js|jsx|vue|py)$ ]]; then
-            if [[ "$FILE_CONTENT" =~ (accounts\.google\.com|oauth2\.googleapis\.com|googleapis\.com/auth) ]]; then
-                BLOCKED=true
-                BLOCK_MESSAGES+=("Direct Google Auth API calls are not allowed in Azure mode. Authentication goes through the OAuth2 Proxy — the app receives the user email via a request header.")
-                echo "[$TIMESTAMP] BLOCKED (azure): Direct Google Auth API call in $FILE_PATH" >> "$AUDIT_LOG"
-            fi
-        fi
-
-        # Block Blob Storage access without APP_BLOB_CONTAINER scope
-        if [[ "$FILE_EXT" == "py" ]]; then
-                    if echo "$FILE_CONTENT" | grep -qiE 'BlobServiceClient|ContainerClient|BlobClient'; then
-                if ! echo "$FILE_CONTENT" | grep -qiE 'BLOB_CONTAINER|APP_BLOB_CONTAINER|os\.environ|os\.getenv'; then
-                    BLOCKED=true
-                    BLOCK_MESSAGES+=("Azure Blob Storage access must use the app-scoped container from the BLOB_CONTAINER environment variable — never a hardcoded container name.")
-                    echo "[$TIMESTAMP] BLOCKED (azure): Blob access without BLOB_CONTAINER scope in $FILE_PATH" >> "$AUDIT_LOG"
-                fi
-            fi
-        fi
-
-    fi
-
     # Migration file checks
     # --------------------------------------------------------
     if $IS_MIGRATION; then
